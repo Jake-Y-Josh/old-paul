@@ -193,8 +193,10 @@ if (isSandboxEnvironment()) {
 // Create a database pool based on environment
 let pool;
 
-// In sandbox environment, use SQLite or mock immediately
-if (isSandboxEnvironment()) {
+// Initialize pool asynchronously to handle DNS resolution
+const initializePool = async () => {
+  // In sandbox environment, use SQLite or mock immediately
+  if (isSandboxEnvironment()) {
   if (process.env.USE_SQLITE === 'true') {
     pool = createSqlitePool();
   } else {
@@ -226,6 +228,10 @@ if (isSandboxEnvironment()) {
 } else {
   // Normal environment, use PostgreSQL connection from env vars
   try {
+    // Import URL module for parsing connection strings
+    const { URL } = require('url');
+    const dns = require('dns').promises;
+    
     let poolConfig;
     if (process.env.DATABASE_URL) {
       // Use proper SSL configuration with certificate
@@ -239,9 +245,34 @@ if (isSandboxEnvironment()) {
       // ### END ADDED LOGGING ###
       
       let connectionString = dbUrl;
-      // IMPORTANT: If the URL contains pooler.supabase.com, replace it with the direct host
-      // This is often necessary for direct connections outside of serverless functions
-      if (dbUrl && dbUrl.includes('pooler.supabase.com')) {
+      
+      // Force IPv4 resolution to avoid IPv6 connection issues
+      try {
+        const parsedUrl = new URL(dbUrl);
+        const hostname = parsedUrl.hostname;
+        
+        // Attempt to resolve hostname to IPv4 address
+        console.log(`Resolving hostname ${hostname} to IPv4...`);
+        const addresses = await dns.resolve4(hostname);
+        
+        if (addresses && addresses.length > 0) {
+          // Use the first IPv4 address
+          const ipv4Address = addresses[0];
+          console.log(`Resolved to IPv4 address: ${ipv4Address}`);
+          
+          // Replace hostname with IPv4 address in connection string
+          parsedUrl.hostname = ipv4Address;
+          connectionString = parsedUrl.toString();
+          console.log('Using IPv4 address for database connection');
+        }
+      } catch (dnsError) {
+        console.error('Error resolving hostname to IPv4:', dnsError.message);
+        console.log('Falling back to original connection string');
+        // Continue with original connection string if DNS resolution fails
+      }
+      // IMPORTANT: Keep using pooler URL if it's provided - it handles connection pooling better
+      // Only switch to direct connection if explicitly needed
+      if (dbUrl && dbUrl.includes('pooler.supabase.com') && process.env.FORCE_DIRECT_CONNECTION === 'true') {
         // Extract the password and construct direct connection
         const match = dbUrl.match(/postgres:\/\/([^:]+):([^@]+)@/);
         if (match) {
@@ -250,6 +281,23 @@ if (isSandboxEnvironment()) {
           if (process.env.DB_HOST && process.env.DB_NAME) {
              connectionString = `postgres://${user}:${password}@${process.env.DB_HOST}:5432/${process.env.DB_NAME}?sslmode=require`;
              console.log('Detected pooler URL in DATABASE_URL, switching to direct connection using DB_HOST/DB_NAME.');
+             
+             // Also resolve DB_HOST to IPv4
+             try {
+               const directUrl = new URL(connectionString);
+               const directHostname = directUrl.hostname;
+               console.log(`Resolving direct hostname ${directHostname} to IPv4...`);
+               const directAddresses = await dns.resolve4(directHostname);
+               
+               if (directAddresses && directAddresses.length > 0) {
+                 directUrl.hostname = directAddresses[0];
+                 connectionString = directUrl.toString();
+                 console.log(`Direct connection resolved to IPv4: ${directAddresses[0]}`);
+                 console.log(`Updated connection string: ${connectionString.replace(/([^:]+:\/\/[^:]+):[^@]+@/m, '$1:********@')}`);
+               }
+             } catch (directDnsError) {
+               console.error('Error resolving direct hostname to IPv4:', directDnsError.message);
+             }
           } else {
              console.error('DATABASE_URL contains pooler, but DB_HOST or DB_NAME are not set for direct connection.');
              // Fallback to using the pooler URL if direct connection details are missing
@@ -277,8 +325,24 @@ if (isSandboxEnvironment()) {
       };
       console.log('Using DATABASE_URL for database connection with SSL certificate');
     } else {
+      // When using individual DB_HOST, also resolve to IPv4
+      let dbHost = process.env.DB_HOST;
+      
+      try {
+        console.log(`Resolving DB_HOST ${dbHost} to IPv4...`);
+        const hostAddresses = await dns.resolve4(dbHost);
+        
+        if (hostAddresses && hostAddresses.length > 0) {
+          dbHost = hostAddresses[0];
+          console.log(`DB_HOST resolved to IPv4: ${dbHost}`);
+        }
+      } catch (hostDnsError) {
+        console.error('Error resolving DB_HOST to IPv4:', hostDnsError.message);
+        console.log('Using original DB_HOST');
+      }
+      
       poolConfig = {
-        host: process.env.DB_HOST,
+        host: dbHost,
         port: process.env.DB_PORT,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
@@ -305,18 +369,33 @@ if (isSandboxEnvironment()) {
     console.error('Error creating PostgreSQL pool:', e.message);
     pool = createSqlitePool();
   }
-}
-
-// Test the connection
-pool.on('connect', () => {
-  if (!usingSqlite) {
-    console.log('Connected to the PostgreSQL database with SSL');
   }
-});
+  return pool;
+};
+
+// Initialize the pool immediately
+(async () => {
+  pool = await initializePool();
+  
+  // Test the connection
+  if (pool) {
+    pool.on('connect', () => {
+      if (!usingSqlite) {
+        console.log('Connected to the PostgreSQL database with SSL');
+      }
+    });
+  }
+})();
 
 // Helper function to execute queries with error handling
 const query = async (text, params) => {
   try {
+    // Ensure pool is initialized
+    if (!pool) {
+      console.log('Pool not initialized, initializing now...');
+      pool = await initializePool();
+    }
+    
     const result = await pool.query(text, params);
     return result;
   } catch (error) {
@@ -1059,6 +1138,11 @@ const createMinimalSchema = async () => {
 // Function to initialize database
 const initDb = async () => {
   try {
+    // Ensure pool is initialized
+    if (!pool) {
+      console.log('Pool not initialized in initDb, initializing now...');
+      pool = await initializePool();
+    }
     // For SQLite, create tables
     if (usingSqlite) {
       await createMinimalSchema();
