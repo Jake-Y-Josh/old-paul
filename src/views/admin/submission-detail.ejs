@@ -62,7 +62,7 @@
           <h5>Submission Content</h5>
           <div class="card mb-4">
             <div class="card-body">
-              <% if (submission.answers && typeof submission.answers === 'object') { %>
+              <% if (submission.responses && typeof submission.responses === 'object' && Object.keys(submission.responses).length > 0) { %>
                 <% 
                   // Parse questions if they exist
                   let questions = {};
@@ -72,6 +72,16 @@
                     } catch (e) {
                       questions = {};
                     }
+                  } else if (submission.questions && typeof submission.questions === 'object') {
+                    questions = submission.questions;
+                  }
+                  
+                  // Map question IDs to their text for better display
+                  const questionMap = {};
+                  if (Array.isArray(questions)) {
+                    questions.forEach(q => {
+                      questionMap[q.id] = q.text || q.label || q.question;
+                    });
                   }
                 %>
                 
@@ -84,10 +94,12 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <% Object.entries(submission.answers).forEach(([key, value]) => { %>
+                      <% Object.entries(submission.responses).forEach(([key, value]) => { %>
                         <tr>
                           <td>
-                            <% if (questions[key] && questions[key].label) { %>
+                            <% if (questionMap[key]) { %>
+                              <%= questionMap[key] %>
+                            <% } else if (questions[key] && questions[key].label) { %>
                               <%= questions[key].label %>
                             <% } else { %>
                               <%= key %>
