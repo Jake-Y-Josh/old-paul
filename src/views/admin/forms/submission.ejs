@@ -1,0 +1,129 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Submission Details</h1>
+  <div>
+    <a href="/admin/forms/<%= form.id %>/submissions" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left"></i> Back to Submissions
+    </a>
+    <a href="/admin/forms/<%= form.id %>/submissions/<%= submission.id %>/export" class="btn btn-success ms-2">
+      <i class="fas fa-file-export"></i> Export
+    </a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Form Information</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-1"><strong>Title:</strong> <%= form.title %></p>
+        <p class="mb-1"><strong>Form ID:</strong> <%= form.id %></p>
+        <p class="mb-1"><strong>Created:</strong> <%= new Date(form.created_at).toLocaleDateString() %></p>
+        <% if (form.description) { %>
+          <hr>
+          <p class="mb-0"><strong>Description:</strong></p>
+          <p class="text-secondary"><%= form.description %></p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Submission Information</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-1"><strong>Submission ID:</strong> <%= submission.id %></p>
+        <p class="mb-1"><strong>Submitted:</strong> <%= new Date(submission.submitted_at).toLocaleString() %></p>
+        <p class="mb-1"><strong>Created:</strong> <%= new Date(submission.created_at).toLocaleString() %></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Client Information</h5>
+      </div>
+      <div class="card-body">
+        <% if (client) { %>
+          <p class="mb-1"><strong>Name:</strong> <%= client.name %></p>
+          <p class="mb-1"><strong>Email:</strong> <%= client.email %></p>
+          <p class="mb-1"><strong>Client ID:</strong> <%= client.id %></p>
+        <% } else { %>
+          <p class="text-muted">No client information available</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header bg-light">
+    <h5 class="mb-0">Responses</h5>
+  </div>
+  <div class="card-body">
+    <% 
+    // Map questions by ID for easier reference
+    const questionMap = {};
+    if (form.questions && Array.isArray(form.questions)) {
+      form.questions.forEach(question => {
+        questionMap[question.id] = question;
+      });
+    }
+    
+    // Get responses
+    const responses = submission.responses || {};
+    
+    if (Object.keys(responses).length === 0) { %>
+      <div class="alert alert-info mb-0">
+        <i class="fas fa-info-circle me-2"></i> No responses found for this submission.
+      </div>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 30%;">Question</th>
+              <th>Response</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% Object.keys(responses).forEach(questionId => { 
+              const question = questionMap[questionId] || { text: 'Unknown Question', type: 'unknown' };
+              const response = responses[questionId];
+            %>
+              <tr>
+                <td class="align-middle">
+                  <strong><%= question.text %></strong>
+                  <div class="text-muted small">
+                    Type: <%= question.type %>
+                  </div>
+                </td>
+                <td class="align-middle">
+                  <% if (Array.isArray(response)) { %>
+                    <ul class="mb-0 ps-3">
+                      <% response.forEach(item => { %>
+                        <li><%= item %></li>
+                      <% }); %>
+                    </ul>
+                  <% } else if (typeof response === 'object' && response !== null) { %>
+                    <ul class="mb-0 ps-3">
+                      <% Object.entries(response).forEach(([key, value]) => { %>
+                        <li><strong><%= key %>:</strong> <%= value %></li>
+                      <% }); %>
+                    </ul>
+                  <% } else { %>
+                    <%= response %>
+                  <% } %>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div> 

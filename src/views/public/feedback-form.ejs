@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | Dynamic FP Feedback System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --primary-color: #ff5204;    /* Dynamic-FP Orange */
+      --secondary-color: #00546c;  /* Dynamic-FP Dark Blue */
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+    }
+    
+    .form-container {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    footer {
+      margin-top: auto;
+    }
+    
+    .star-rating {
+      display: flex;
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+    }
+    
+    .star-rating input {
+      display: none;
+    }
+    
+    .star-rating label {
+      color: #ddd;
+      font-size: 2rem;
+      padding: 0 0.1em;
+      cursor: pointer;
+    }
+    
+    .star-rating input:checked ~ label {
+      color: #ffb400;
+    }
+    
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+      color: #ffb400;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="dynamic-header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center py-3">
+        <div>
+          <img src="/images/Dynamic-Orange.svg" alt="Dynamic FP" height="32">
+        </div>
+        <div>
+          <a href="/" class="btn btn-sm btn-outline-light">
+            <i class="fas fa-home me-1"></i> Home
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container my-5">
+    <% if (typeof expired !== 'undefined' && expired) { %>
+      <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading">This feedback form has expired</h4>
+        <p>We're sorry, but this feedback form is no longer accepting submissions.</p>
+        <hr>
+        <a href="/" class="btn btn-primary mt-3">Return to Home</a>
+      </div>
+    <% } else { %>
+      <div class="row">
+        <div class="col-lg-8 mx-auto">
+          <div class="form-container">
+            <h1 class="mb-4"><%= form.title %></h1>
+            <% if (form.description) { %>
+              <p class="lead mb-4"><%= form.description %></p>
+            <% } %>
+            
+            <form action="/feedback/<%= form.id %>/submit" method="POST" id="feedbackForm">
+              <input type="hidden" name="clientId" value="<%= client.id %>">
+              
+              <!-- Form questions will be generated here based on the form configuration -->
+              <% form.questions.forEach((question, index) => { %>
+                <div class="mb-4 pb-3 border-bottom">
+                  <label class="form-label fw-bold"><%= question.text %></label>
+                  <% if (question.description) { %>
+                    <p class="text-muted small mb-3"><%= question.description %></p>
+                  <% } %>
+                  
+                  <% if (question.type === 'text') { %>
+                    <input type="text" class="form-control" name="answers[<%= index %>]" required>
+                  <% } else if (question.type === 'textarea') { %>
+                    <textarea class="form-control" name="answers[<%= index %>]" rows="3" required></textarea>
+                  <% } else if (question.type === 'rating') { %>
+                    <div class="star-rating">
+                      <% for (let i = 5; i >= 1; i--) { %>
+                        <input type="radio" id="star<%= index %>-<%= i %>" name="answers[<%= index %>]" value="<%= i %>" required>
+                        <label for="star<%= index %>-<%= i %>">&#9733;</label>
+                      <% } %>
+                    </div>
+                  <% } else if (question.type === 'radio') { %>
+                    <% question.options.forEach((option, optionIndex) => { %>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="answers[<%= index %>]" id="option<%= index %>-<%= optionIndex %>" value="<%= option %>" required>
+                        <label class="form-check-label" for="option<%= index %>-<%= optionIndex %>"><%= option %></label>
+                      </div>
+                    <% }) %>
+                  <% } else if (question.type === 'checkbox') { %>
+                    <% question.options.forEach((option, optionIndex) => { %>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="answers[<%= index %>][]" id="option<%= index %>-<%= optionIndex %>" value="<%= option %>">
+                        <label class="form-check-label" for="option<%= index %>-<%= optionIndex %>"><%= option %></label>
+                      </div>
+                    <% }) %>
+                  <% } else if (question.type === 'select') { %>
+                    <select class="form-select" name="answers[<%= index %>]" required>
+                      <option value="" selected disabled>Please select an option</option>
+                      <% question.options.forEach((option, optionIndex) => { %>
+                        <option value="<%= option %>"><%= option %></option>
+                      <% }) %>
+                    </select>
+                  <% } %>
+                </div>
+              <% }) %>
+              
+              <div class="mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Submit Feedback</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Footer -->
+  <footer class="dynamic-footer">
+    <div class="container">
+      <div class="row">
+        <div class="col-12 text-center">
+          <p class="mb-2">© <%= new Date().getFullYear() %> Dynamic FP. All rights reserved.</p>
+          <div class="footer-links">
+            <a href="https://dynamic-fp.co.uk/privacy-policy" target="_blank">Privacy Policy</a>
+            <a href="https://dynamic-fp.co.uk/terms-of-service" target="_blank">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('feedbackForm');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          const button = this.querySelector('button[type="submit"]');
+          button.disabled = true;
+          button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+        });
+      }
+    });
+  </script>
+</body>
+</html> 

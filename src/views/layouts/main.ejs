@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | Dynamic FP Feedback System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <meta name="description" content="Dynamic FP Client Feedback System - A comprehensive solution for collecting and managing client feedback.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#ff5204">
+  <style>
+    :root {
+      --primary-color: #ff5204;    /* Dynamic-FP Orange */
+      --secondary-color: #00546c;  /* Dynamic-FP Dark Blue */
+    }
+    
+    body {
+      font-family: 'Montserrat', sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    main {
+      flex: 1;
+    }
+    
+    .dynamic-header {
+      background-color: var(--secondary-color);
+      color: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1030;
+    }
+    
+    .dynamic-footer {
+      background-color: var(--secondary-color);
+      color: white;
+      padding: 1rem 0;
+      margin-top: auto;
+    }
+    
+    .sticky-top {
+      position: sticky;
+      top: 0;
+    }
+    
+    /* Help button styles */
+    .help-buttons .btn {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .help-buttons .btn:hover {
+      transform: scale(1.1);
+    }
+    
+    /* Custom styles for Shepherd tour */
+    .shepherd-element {
+      border-radius: 8px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .shepherd-header {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .shepherd-title {
+      color: white;
+    }
+    
+    .shepherd-cancel-icon {
+      color: white;
+    }
+    
+    .shepherd-text {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .shepherd-footer .shepherd-button {
+      border-radius: 4px;
+      padding: 0.375rem 0.75rem;
+    }
+    
+    .shepherd-footer .shepherd-button:not(:last-child) {
+      margin-right: 0.5rem;
+    }
+    
+    .dynamic-footer a {
+      color: rgba(255, 255, 255, 0.8);
+      margin-left: 1rem;
+      text-decoration: none;
+    }
+    
+    .dynamic-footer a:hover {
+      color: white;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover, .btn-primary:focus {
+      background-color: #e64500;
+      border-color: #e64500;
+    }
+    
+    .btn-outline-primary {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover, .btn-outline-primary:focus {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+  </style>
+</head>
+<body>
+  <header class="dynamic-header sticky-top">
+    <div class="container py-2">
+      <div class="d-flex justify-content-between align-items-center">
+        <a href="/" class="text-white text-decoration-none">
+          <img src="/images/Dynamic-Orange.svg" alt="Dynamic FP" height="32">
+        </a>
+        <div>
+          <a href="https://dynamic-fp.co.uk" class="text-white text-decoration-none me-3">Main Website</a>
+          <a href="https://dynamic-fp.co.uk/contact-us/" class="text-white text-decoration-none me-3">Contact Us</a>
+          <a href="/admin/login" class="btn btn-outline-light btn-sm">Admin Login</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <%- body %>
+  </main>
+
+  <footer class="dynamic-footer">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          &copy; <%= new Date().getFullYear() %> Dynamic Financial Planning
+        </div>
+        <div>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+  
+  <!-- Help/Tour Button -->
+  <div class="position-fixed bottom-0 end-0 m-4 help-buttons">
+    <div class="btn-group dropup">
+      <button type="button" class="btn btn-primary rounded-circle" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-question"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><h6 class="dropdown-header">Need Help?</h6></li>
+        <li><a class="dropdown-item" href="/instructions"><i class="fas fa-book me-2"></i>View Instructions</a></li>
+        <li><a class="dropdown-item" href="#" id="start-tour"><i class="fas fa-map-signs me-2"></i>Start Tour</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="https://dynamic-fp.co.uk/contact-us/"><i class="fas fa-headset me-2"></i>Contact Support</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Initialize tour functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const tour = new Shepherd.Tour({
+        useModalOverlay: true,
+        defaultStepOptions: {
+          classes: 'shepherd-theme-arrows',
+          scrollTo: true,
+          cancelIcon: {
+            enabled: true
+          }
+        }
+      });
+      
+      // Store tour steps based on current page
+      const currentPath = window.location.pathname;
+      
+      // Define common tour steps (for all pages)
+      const commonSteps = [
+        {
+          id: 'welcome',
+          title: 'Welcome to Dynamic FP Feedback System',
+          text: 'This tour will help you understand how to use this platform. Click "Next" to continue.',
+          buttons: [
+            {
+              text: 'Exit',
+              action: tour.cancel
+            },
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        },
+        {
+          id: 'header',
+          attachTo: {
+            element: '.dynamic-header',
+            on: 'bottom'
+          },
+          title: 'Navigation Header',
+          text: 'This header provides access to the main website, contact information, and admin login.',
+          buttons: [
+            {
+              text: 'Back',
+              action: tour.back
+            },
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        },
+        {
+          id: 'help-button',
+          attachTo: {
+            element: '.help-buttons',
+            on: 'left'
+          },
+          title: 'Help Button',
+          text: 'Click this button anytime to access instructions, restart this tour, or contact support.',
+          buttons: [
+            {
+              text: 'Back',
+              action: tour.back
+            },
+            {
+              text: 'Next',
+              action: tour.next
+            }
+          ]
+        }
+      ];
+      
+      // Add page-specific steps
+      let pageSteps = [];
+      
+      if (currentPath === '/' || currentPath === '') {
+        pageSteps = [
+          {
+            id: 'home-intro',
+            attachTo: {
+              element: '.container .row:first-of-type',
+              on: 'bottom'
+            },
+            title: 'Welcome Section',
+            text: 'This is the main welcome area that introduces the feedback portal.',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          },
+          {
+            id: 'how-it-works',
+            attachTo: {
+              element: '.bg-light',
+              on: 'top'
+            },
+            title: 'How It Works',
+            text: 'This section explains the process for clients to provide feedback.',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          }
+        ];
+      } else if (currentPath.includes('/admin/login')) {
+        pageSteps = [
+          {
+            id: 'admin-login',
+            attachTo: {
+              element: 'form',
+              on: 'bottom'
+            },
+            title: 'Admin Login',
+            text: 'Enter your username and password to access the admin dashboard.',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          }
+        ];
+      } else if (currentPath.includes('/instructions')) {
+        pageSteps = [
+          {
+            id: 'instructions-intro',
+            attachTo: {
+              element: '.instructions-header',
+              on: 'bottom'
+            },
+            title: 'Instructions Page',
+            text: 'This page contains detailed instructions for using the feedback system.',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          },
+          {
+            id: 'instructions-tabs',
+            attachTo: {
+              element: '.nav-tabs',
+              on: 'bottom'
+            },
+            title: 'Topic Navigation',
+            text: 'Use these tabs to navigate between different instruction topics.',
+            buttons: [
+              {
+                text: 'Back',
+                action: tour.back
+              },
+              {
+                text: 'Next',
+                action: tour.next
+              }
+            ]
+          }
+        ];
+      }
+      
+      // Final step for all pages
+      const finalStep = {
+        id: 'tour-end',
+        title: 'Tour Complete!',
+        text: 'You can restart this tour anytime by clicking the help button in the bottom right corner.',
+        buttons: [
+          {
+            text: 'Back',
+            action: tour.back
+          },
+          {
+            text: 'Finish',
+            action: tour.complete
+          }
+        ]
+      };
+      
+      // Combine all steps
+      const allSteps = [...commonSteps, ...pageSteps, finalStep];
+      
+      // Add steps to tour
+      allSteps.forEach(step => {
+        tour.addStep(step);
+      });
+      
+      // Start tour when button is clicked
+      document.getElementById('start-tour').addEventListener('click', function(e) {
+        e.preventDefault();
+        tour.start();
+      });
+      
+      // Check if URL has tour parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('tour') === 'true') {
+        tour.start();
+      }
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,206 @@
+<div class="row mb-4">
+  <div class="col-md-8">
+    <h1>Import Clients</h1>
+    <p class="text-muted">Upload a file containing client information</p>
+  </div>
+  <div class="col-md-4 text-end">
+    <a href="/admin/clients" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left"></i> Back to Clients
+    </a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-4">Client Import</h5>
+        
+        <div class="alert alert-info mb-4">
+          <h6><i class="fas fa-info-circle"></i> Instructions</h6>
+          <p>The file must include the following columns:</p>
+          <ul>
+            <li><strong>name</strong> - Client's full name</li>
+            <li><strong>email</strong> - Client's email address</li>
+            <li><strong>Client ID</strong> (optional) - Unique identifier from EnableCRM</li>
+          </ul>
+          <p class="mb-0">Additional columns will be stored as extra data for the client.</p>
+        </div>
+        
+        <form id="uploadForm" action="/admin/clients/upload" method="post" enctype="multipart/form-data">
+          <div class="mb-4">
+            <label for="file" class="form-label">Select File</label>
+            <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx" required>
+            <div class="form-text">Accepted formats: CSV (.csv) or Excel (.xlsx)</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="clientIdField" class="form-label">Client ID Column Name</label>
+            <input type="text" class="form-control" id="clientIdField" name="clientIdField" value="Client ID">
+            <div class="form-text">Specify the column name that contains the client ID in your Excel file</div>
+          </div>
+          
+          <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" id="updateExisting" name="updateExisting" checked>
+            <label class="form-check-label" for="updateExisting">
+              Update existing clients (by Client ID or email address)
+            </label>
+          </div>
+          
+          <div id="uploadStatus" class="d-none">
+            <div class="progress mb-3">
+              <div id="uploadProgress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+            </div>
+            <p id="uploadMessage" class="text-muted"></p>
+          </div>
+          
+          <div id="uploadResult" class="alert d-none mt-4"></div>
+          
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='/admin/clients'">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="uploadButton">
+              <i class="fas fa-upload"></i> Upload File
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">About EnableCRM Import</h5>
+        <p>When importing clients from EnableCRM:</p>
+        
+        <div class="mb-3">
+          <ul class="small">
+            <li>The system will identify clients by their <strong>Client ID</strong></li>
+            <li>Existing clients with matching ID will be <strong>updated</strong></li>
+            <li>Multiple entries with the same ID in your file will be deduplicated</li>
+            <li>All other client data will be properly merged</li>
+          </ul>
+        </div>
+        
+        <div class="mt-4">
+          <h6>Data Handling:</h6>
+          <ul class="small">
+            <li>Column headers must be included in the first row</li>
+            <li>Email addresses must be valid and unique</li>
+            <li>Client IDs must be unique</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const uploadMessage = document.getElementById('uploadMessage');
+    const uploadResult = document.getElementById('uploadResult');
+    const uploadButton = document.getElementById('uploadButton');
+    
+    uploadForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Show loading state
+      uploadButton.disabled = true;
+      uploadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+      uploadStatus.classList.remove('d-none');
+      uploadResult.classList.add('d-none');
+      uploadProgress.style.width = '0%';
+      uploadMessage.innerText = 'Preparing file...';
+      
+      // Validate file input
+      const fileInput = document.getElementById('file');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        showError('Please select a file to upload');
+        return;
+      }
+      
+      // Validate file type
+      const file = fileInput.files[0];
+      const fileExt = file.name.split('.').pop().toLowerCase();
+      if (fileExt !== 'csv' && fileExt !== 'xlsx') {
+        showError('Please upload a CSV or Excel file (.csv or .xlsx)');
+        return;
+      }
+      
+      // Create FormData object
+      const formData = new FormData(uploadForm);
+      
+      try {
+        uploadMessage.innerText = 'Uploading file...';
+        uploadProgress.style.width = '30%';
+        
+        // Upload the file
+        const response = await fetch('/admin/clients/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        uploadProgress.style.width = '90%';
+        uploadMessage.innerText = 'Processing file...';
+        
+        // Check if we were redirected (success case)
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+        
+        // Handle JSON response
+        const result = await response.json();
+        
+        uploadProgress.style.width = '100%';
+        
+        if (result.success) {
+          uploadResult.classList.remove('d-none', 'alert-danger');
+          uploadResult.classList.add('alert-success');
+          uploadResult.innerHTML = `
+            <h5><i class="fas fa-check-circle"></i> Success!</h5>
+            <p>${result.message}</p>
+            <a href="/admin/clients" class="btn btn-primary btn-sm">View Clients</a>
+          `;
+        } else {
+          showError(result.message || 'Error uploading file');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        showError('An unexpected error occurred');
+      }
+    });
+    
+    function showError(message) {
+      uploadStatus.classList.add('d-none');
+      uploadResult.classList.remove('d-none', 'alert-success');
+      uploadResult.classList.add('alert-danger');
+      uploadResult.innerHTML = `
+        <h5><i class="fas fa-exclamation-circle"></i> Error</h5>
+        <p>${message}</p>
+      `;
+      
+      uploadButton.disabled = false;
+      uploadButton.innerHTML = '<i class="fas fa-upload"></i> Upload File';
+    }
+  });
+</script>
+
+<style>
+  .csv-example {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 0.875rem;
+    overflow-x: auto;
+  }
+  
+  .progress {
+    height: 10px;
+  }
+</style> 

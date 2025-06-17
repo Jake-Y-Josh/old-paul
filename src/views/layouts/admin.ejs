@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | Dynamic FP Admin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --primary-color: #ff5204;    /* Dynamic-FP Orange */
+      --secondary-color: #00546c;  /* Dynamic-FP Dark Blue */
+      --light-color: #ffffff;      /* White */
+    }
+    
+    .sidebar {
+      background-color: var(--secondary-color);
+      min-height: 100vh;
+      width: 220px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+    }
+    
+    .content-wrapper {
+      margin-left: 220px;
+      width: calc(100% - 220px);
+      min-height: 100vh;
+    }
+    
+    .sidebar-header {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+    
+    .menu-item.active .menu-link {
+      background-color: var(--primary-color);
+    }
+    
+    .menu-link:hover {
+      background-color: rgba(255, 82, 4, 0.7);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover, .btn-primary:focus {
+      background-color: #e64500;
+      border-color: #e64500;
+    }
+    
+    .badge.bg-danger {
+      background-color: var(--primary-color) !important;
+    }
+    
+    .nav-tabs .nav-link.active {
+      color: var(--primary-color);
+      border-color: transparent transparent var(--primary-color);
+    }
+    
+    .page-link {
+      color: var(--primary-color);
+    }
+    
+    .page-item.active .page-link {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+  </style>
+</head>
+<body class="admin-body">
+  <div class="wrapper">
+    <!-- Sidebar -->
+    <nav id="sidebar" class="sidebar">
+      <div class="sidebar-header p-3">
+        <div class="d-flex align-items-center">
+          <div class="brand-icon me-2">
+            <img src="/images/Dynamic-Orange.svg" alt="Dynamic FP" height="32">
+          </div>
+          <div class="brand-text">
+            <h5 class="mb-0 text-white">Admin</h5>
+          </div>
+        </div>
+      </div>
+
+      <ul class="nav flex-column">
+        <li class="menu-item <%= (title === 'Admin Dashboard') ? 'active' : '' %>">
+          <a href="/admin/dashboard" class="menu-link">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+          </a>
+        </li>
+        <li class="menu-item <%= (title.includes('Form') && !title.includes('Email') && !title.includes('Submission') && !title.includes('Send Feedback')) ? 'active' : '' %>">
+          <a href="/admin/forms" class="menu-link">
+            <i class="fas fa-file-alt"></i> Forms
+          </a>
+        </li>
+        <li class="menu-item <%= (title.includes('Submission')) ? 'active' : '' %>">
+          <a href="/admin/submissions" class="menu-link">
+            <i class="fas fa-clipboard-list"></i> Submissions
+          </a>
+        </li>
+        <li class="menu-item <%= (title.includes('Client')) ? 'active' : '' %>">
+          <a href="/admin/clients" class="menu-link">
+            <i class="fas fa-users"></i> Clients
+          </a>
+        </li>
+        <li class="menu-item <%= (title === 'Send Emails' || title === 'Send Feedback Form' || title === 'Select Form for Email') ? 'active' : '' %>">
+          <a href="/admin/emails/send" class="menu-link">
+            <i class="fas fa-paper-plane"></i> Send Emails
+          </a>
+        </li>
+        <li class="menu-item <%= (title === 'Email Logs') ? 'active' : '' %>">
+          <a href="/admin/emails/logs" class="menu-link">
+            <i class="fas fa-history"></i> Email Logs
+          </a>
+        </li>
+        <li class="menu-item <%= (title === 'User Management') ? 'active' : '' %>">
+          <a href="/admin/users" class="menu-link">
+            <i class="fas fa-user-shield"></i> Users
+          </a>
+        </li>
+        <li class="menu-item <%= (title === 'System Settings') ? 'active' : '' %>">
+          <a href="/admin/settings" class="menu-link">
+            <i class="fas fa-cog"></i> Settings
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="/admin/logout" class="menu-link">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="content" class="content-wrapper">
+      <!-- Top Navbar - Hidden for space efficiency -->
+      <!-- <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+        <div class="container-fluid">
+          <button type="button" id="sidebarCollapseMobile" class="btn btn-sm btn-primary d-md-none">
+            <i class="fas fa-bars"></i>
+          </button>
+          
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="fas fa-user-circle me-1"></i> <%= username %>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                  <li><a class="dropdown-item" href="/admin/settings"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="/admin/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav> -->
+
+      <div class="container-fluid py-4 px-4">
+        <% if (typeof success !== 'undefined' && success) { %>
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> <%= success %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% } %>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> <%= error %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% } %>
+
+        <%- body %>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+  <script src="/js/admin.js"></script>
+  
+  <!-- Help/Tour Button -->
+  <div class="position-fixed bottom-0 end-0 m-4 help-buttons">
+    <div class="btn-group dropup">
+      <button type="button" class="btn btn-primary rounded-circle" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-question"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><h6 class="dropdown-header">Need Help?</h6></li>
+        <li><a class="dropdown-item" href="/instructions" target="_blank"><i class="fas fa-book me-2"></i>View Instructions</a></li>
+        <li><a class="dropdown-item" href="#" id="start-admin-tour"><i class="fas fa-map-signs me-2"></i>Start Tour</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="https://dynamic-fp.co.uk/contact-us/" target="_blank"><i class="fas fa-headset me-2"></i>Contact Support</a></li>
+      </ul>
+    </div>
+  </div>
+  
+  <script>
+    // Highlight active menu item
+    $(document).ready(function() {
+      const currentPath = window.location.pathname;
+      $('.menu-link').each(function() {
+        const linkPath = $(this).attr('href');
+        if (currentPath.startsWith(linkPath) && linkPath !== '/') {
+          $(this).parent().addClass('active');
+        }
+      });
+      
+      // Admin Tour Functionality
+      const adminTour = new Shepherd.Tour({
+        useModalOverlay: true,
+        defaultStepOptions: {
+          classes: 'shepherd-theme-arrows',
+          scrollTo: true,
+          cancelIcon: {
+            enabled: true
+          }
+        }
+      });
+      
+      // Define admin tour steps
+      const adminSteps = [
+        {
+          id: 'admin-welcome',
+          title: 'Welcome to Admin Dashboard',
+          text: 'This tour will help you understand how to use the admin interface. Click "Next" to continue.',
+          buttons: [
+            {
+              text: 'Exit',
+              action: adminTour.cancel
+            },
+            {
+              text: 'Next',
+              action: adminTour.next
+            }
+          ]
+        },
+        {
+          id: 'admin-sidebar',
+          attachTo: {
+            element: '#sidebar',
+            on: 'right'
+          },
+          title: 'Navigation Sidebar',
+          text: 'This sidebar provides access to all admin functions. Click on any menu item to navigate to that section.',
+          buttons: [
+            {
+              text: 'Back',
+              action: adminTour.back
+            },
+            {
+              text: 'Next',
+              action: adminTour.next
+            }
+          ]
+        },
+        {
+          id: 'admin-content',
+          attachTo: {
+            element: '#content',
+            on: 'left'
+          },
+          title: 'Content Area',
+          text: 'This is where all admin content is displayed. The content changes based on the section you select from the sidebar.',
+          buttons: [
+            {
+              text: 'Back',
+              action: adminTour.back
+            },
+            {
+              text: 'Next',
+              action: adminTour.next
+            }
+          ]
+        },
+        {
+          id: 'admin-help',
+          attachTo: {
+            element: '.help-buttons',
+            on: 'left'
+          },
+          title: 'Help & Support',
+          text: 'Click this button anytime to access instructions, restart this tour, or contact support.',
+          buttons: [
+            {
+              text: 'Back',
+              action: adminTour.back
+            },
+            {
+              text: 'Finish',
+              action: adminTour.complete
+            }
+          ]
+        }
+      ];
+      
+      // Add steps to tour
+      adminSteps.forEach(step => {
+        adminTour.addStep(step);
+      });
+      
+      // Start tour when button is clicked
+      document.getElementById('start-admin-tour').addEventListener('click', function(e) {
+        e.preventDefault();
+        adminTour.start();
+      });
+      
+      // Check if URL has tour parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('tour') === 'true') {
+        adminTour.start();
+      }
+    });
+  </script>
+</body>
+</html> 

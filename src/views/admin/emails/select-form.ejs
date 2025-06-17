@@ -1,0 +1,295 @@
+<%- include('../../partials/admin-page-header', {
+  pageTitle: 'Send Feedback Request',
+  pageDescription: 'Select a form and recipients for feedback collection',
+  breadcrumbs: [
+    { label: 'Emails', href: '/admin/emails' },
+    { label: 'Send Request' }
+  ]
+}) %>
+
+<div class="container-fluid px-4">
+  <!-- Success/Error Messages -->
+  <% if (success) { %>
+    <div class="alert alert-success">
+      <h6 class="alert-heading">Success</h6>
+      <p><%= success %></p>
+    </div>
+  <% } %>
+
+  <% if (error) { %>
+    <div class="alert alert-danger">
+      <h6 class="alert-heading">Error</h6>
+      <p><%= error %></p>
+    </div>
+  <% } %>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Select Form and Recipients</h5>
+      <form id="sendFormEmail">
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <label for="formSelect" class="form-label">Select Feedback Form</label>
+            <select class="form-select" id="formSelect" name="formId" required>
+              <option value="" selected disabled>Choose a form...</option>
+              <% if (forms && forms.length > 0) { %>
+                <% forms.forEach(form => { %>
+                  <option value="<%= form.id %>"><%= form.title %></option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
+        </div>
+        
+        <h5 class="mb-3">Select Recipients</h5>
+        
+        <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="selectAllClients">
+            <label class="form-check-label" for="selectAllClients">
+              <strong>Select All Clients</strong>
+            </label>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover table-striped">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 50px;"></th>
+                <th>Name</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (clients && clients.length > 0) { %>
+                <% clients.forEach(client => { %>
+                  <tr>
+                    <td>
+                      <div class="form-check">
+                        <input class="form-check-input client-checkbox" type="checkbox" 
+                               name="clientIds" value="<%= client.id %>" 
+                               id="client-<%= client.id %>">
+                      </div>
+                    </td>
+                    <td><label for="client-<%= client.id %>"><%= client.name %></label></td>
+                    <td><%= client.email %></td>
+                  </tr>
+                <% }); %>
+              <% } else { %>
+                <tr>
+                  <td colspan="3" class="text-center">
+                    <div class="alert alert-info mb-0">
+                      No clients found. <a href="/admin/clients">Add clients</a> first.
+                    </div>
+                  </td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 text-end">
+          <% if (clients && clients.length > 0) { %>
+            <button type="submit" class="btn btn-primary" id="sendButton">
+              <i class="fas fa-paper-plane"></i> Send Form
+            </button>
+          <% } else { %>
+            <a href="/admin/clients" class="btn btn-outline-primary">
+              <i class="fas fa-user-plus"></i> Add Clients
+            </a>
+          <% } %>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sending Progress Modal -->
+  <div class="modal fade" id="sendingModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="sendingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="sendingModalLabel">Sending Emails</h5>
+        </div>
+        <div class="modal-body">
+          <p class="text-center mb-3">Sending emails, please wait...</p>
+          <div class="progress">
+            <div id="sendProgress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Modal -->
+  <div class="modal fade" id="resultsModal" tabindex="-1" aria-labelledby="resultsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="resultsModalLabel">Email Results</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="resultsContent">
+          <!-- Results will be populated here -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllClients');
+    const clientCheckboxes = document.querySelectorAll('.client-checkbox');
+    const sendForm = document.getElementById('sendFormEmail');
+    const sendButton = document.getElementById('sendButton');
+    const sendingModal = new bootstrap.Modal(document.getElementById('sendingModal'));
+    const resultsModal = new bootstrap.Modal(document.getElementById('resultsModal'));
+    
+    // Select all clients functionality
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener('change', function() {
+        clientCheckboxes.forEach(checkbox => {
+          checkbox.checked = selectAllCheckbox.checked;
+        });
+      });
+    }
+    
+    // Update select all checkbox when individual checkboxes change
+    clientCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const allChecked = Array.from(clientCheckboxes).every(cb => cb.checked);
+        const anyChecked = Array.from(clientCheckboxes).some(cb => cb.checked);
+        
+        if (selectAllCheckbox) {
+          selectAllCheckbox.checked = allChecked;
+          selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+        }
+      });
+    });
+    
+    // Handle form submission
+    if (sendForm) {
+      sendForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formId = document.getElementById('formSelect').value;
+        const selectedClients = Array.from(clientCheckboxes)
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+        
+        if (!formId) {
+          alert('Please select a form to send.');
+          return;
+        }
+        
+        if (selectedClients.length === 0) {
+          alert('Please select at least one client.');
+          return;
+        }
+        
+        // Show sending modal
+        sendingModal.show();
+        document.getElementById('sendProgress').style.width = '0%';
+        
+        try {
+          const response = await fetch('/admin/emails/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              formId,
+              clientIds: selectedClients
+            })
+          });
+          
+          // Update progress
+          document.getElementById('sendProgress').style.width = '100%';
+          
+          const result = await response.json();
+          
+          // Hide sending modal
+          sendingModal.hide();
+          
+          if (result.success) {
+            // Show results modal
+            const successCount = result.results.filter(r => r.success).length;
+            const failureCount = result.results.length - successCount;
+            
+            let resultHtml = `
+              <div class="alert ${failureCount > 0 ? 'alert-warning' : 'alert-success'}">
+                <h6 class="alert-heading mb-2">${result.message}</h6>
+                <p class="mb-0">
+                  <i class="fas fa-check-circle text-success"></i> ${successCount} emails sent successfully
+                  ${failureCount > 0 ? `<br><i class="fas fa-exclamation-circle text-danger"></i> ${failureCount} emails failed` : ''}
+                </p>
+              </div>
+              
+              <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                  <thead>
+                    <tr>
+                      <th>Client</th>
+                      <th>Email</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+            `;
+            
+            result.results.forEach(item => {
+              resultHtml += `
+                <tr>
+                  <td>${item.clientName || 'Unknown'}</td>
+                  <td>${item.clientEmail || 'N/A'}</td>
+                  <td>
+                    ${item.success 
+                      ? '<span class="badge bg-success">Sent</span>' 
+                      : `<span class="badge bg-danger">Failed</span> <i class="fas fa-info-circle" title="${item.message}"></i>`}
+                  </td>
+                </tr>
+              `;
+            });
+            
+            resultHtml += `
+                  </tbody>
+                </table>
+              </div>
+            `;
+            
+            document.getElementById('resultsContent').innerHTML = resultHtml;
+            resultsModal.show();
+          } else {
+            // Show error
+            document.getElementById('resultsContent').innerHTML = `
+              <div class="alert alert-danger">
+                <h6 class="alert-heading">Error</h6>
+                <p>${result.message || 'An error occurred while sending emails.'}</p>
+              </div>
+            `;
+            resultsModal.show();
+          }
+        } catch (error) {
+          console.error('Error sending emails:', error);
+          
+          // Hide sending modal
+          sendingModal.hide();
+          
+          // Show error
+          document.getElementById('resultsContent').innerHTML = `
+            <div class="alert alert-danger">
+              <h6 class="alert-heading">Error</h6>
+              <p>An unexpected error occurred while sending emails. Please try again.</p>
+              <p class="mb-0"><small>${error.message}</small></p>
+            </div>
+          `;
+          resultsModal.show();
+        }
+      });
+    }
+  });
+</script> 

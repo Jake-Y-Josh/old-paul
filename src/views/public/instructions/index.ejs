@@ -1,0 +1,645 @@
+<%- include('../../layouts/main', { title: 'Instructions', body: `
+<div class="container py-4">
+  <div class="row mb-4 instructions-header">
+    <div class="col-12 text-center">
+      <h1 class="display-5 fw-bold mb-3">User Instructions</h1>
+      <p class="lead">Comprehensive guides to using the Dynamic FP Feedback System</p>
+      <button class="btn btn-primary mt-2" id="start-instructions-tour">
+        <i class="fas fa-play-circle me-2"></i>Start Interactive Tour
+      </button>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-12">
+      <ul class="nav nav-tabs nav-fill mb-4" id="instructionTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+            <i class="fas fa-home me-2"></i>Overview
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin" type="button" role="tab" aria-controls="admin" aria-selected="false">
+            <i class="fas fa-user-shield me-2"></i>Admin Guide
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="forms-tab" data-bs-toggle="tab" data-bs-target="#forms" type="button" role="tab" aria-controls="forms" aria-selected="false">
+            <i class="fas fa-file-alt me-2"></i>Forms
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients" type="button" role="tab" aria-controls="clients" aria-selected="false">
+            <i class="fas fa-users me-2"></i>Client Management
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="false">
+            <i class="fas fa-envelope me-2"></i>Email System
+          </button>
+        </li>
+      </ul>
+      
+      <div class="tab-content p-4 bg-white rounded-3 shadow-sm" id="instructionTabsContent">
+        <!-- Overview Tab -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+          <div class="d-flex align-items-center mb-4">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 48px; height: 48px;">
+              <i class="fas fa-info-circle fs-4"></i>
+            </div>
+            <h2 class="ms-3 mb-0">System Overview</h2>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                  <h3 class="h5 card-title"><i class="fas fa-rocket me-2 text-primary"></i>Getting Started</h3>
+                  <p class="card-text">The Dynamic FP Feedback System is designed to streamline collecting and managing client feedback. It provides:</p>
+                  <ul>
+                    <li>A secure admin interface for managing feedback forms</li>
+                    <li>Client data management with CSV import functionality</li>
+                    <li>Customizable feedback forms with various question types</li>
+                    <li>Email integration for sending feedback requests</li>
+                    <li>Response tracking and analysis tools</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                  <h3 class="h5 card-title"><i class="fas fa-user-lock me-2 text-primary"></i>Access & Security</h3>
+                  <p class="card-text">The system is designed with security in mind:</p>
+                  <ul>
+                    <li>Secure admin authentication with password protection</li>
+                    <li>Role-based access control for administrative functions</li>
+                    <li>Encrypted client data storage</li>
+                    <li>Unique, secure links for client feedback submissions</li>
+                    <li>SSL/TLS encryption for all data transmission</li>
+                  </ul>
+                  <p>Default admin credentials are provided separately. Please change your password upon first login.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="alert alert-info d-flex align-items-center" role="alert">
+            <i class="fas fa-lightbulb me-3 fs-4"></i>
+            <div>
+              <strong>Pro Tip:</strong> Use the interactive tour feature to get familiar with the system interface. Click the help button <i class="fas fa-question-circle"></i> in the bottom right of any page to start the tour anytime.
+            </div>
+          </div>
+          
+          <div class="row mt-4">
+            <div class="col-md-12">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <h3 class="h5 card-title"><i class="fas fa-sitemap me-2 text-primary"></i>System Workflow</h3>
+                  <p class="card-text">The typical workflow for using the feedback system:</p>
+                  
+                  <div class="d-flex flex-column flex-md-row justify-content-between text-center workflow-diagram">
+                    <div class="workflow-step">
+                      <div class="workflow-icon bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto">
+                        <i class="fas fa-user-plus text-primary"></i>
+                      </div>
+                      <h4 class="h6 mt-2">1. Import Clients</h4>
+                      <p class="small">Upload client data via CSV</p>
+                    </div>
+                    
+                    <div class="workflow-arrow d-none d-md-block align-self-center">
+                      <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                    
+                    <div class="workflow-step">
+                      <div class="workflow-icon bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto">
+                        <i class="fas fa-edit text-primary"></i>
+                      </div>
+                      <h4 class="h6 mt-2">2. Create Forms</h4>
+                      <p class="small">Design feedback questionnaires</p>
+                    </div>
+                    
+                    <div class="workflow-arrow d-none d-md-block align-self-center">
+                      <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                    
+                    <div class="workflow-step">
+                      <div class="workflow-icon bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto">
+                        <i class="fas fa-paper-plane text-primary"></i>
+                      </div>
+                      <h4 class="h6 mt-2">3. Send Emails</h4>
+                      <p class="small">Dispatch form links to clients</p>
+                    </div>
+                    
+                    <div class="workflow-arrow d-none d-md-block align-self-center">
+                      <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                    
+                    <div class="workflow-step">
+                      <div class="workflow-icon bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto">
+                        <i class="fas fa-chart-bar text-primary"></i>
+                      </div>
+                      <h4 class="h6 mt-2">4. Monitor Responses</h4>
+                      <p class="small">Track and analyze feedback</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Admin Guide Tab -->
+        <div class="tab-pane fade" id="admin" role="tabpanel" aria-labelledby="admin-tab">
+          <div class="d-flex align-items-center mb-4">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 48px; height: 48px;">
+              <i class="fas fa-user-shield fs-4"></i>
+            </div>
+            <h2 class="ms-3 mb-0">Admin Guide</h2>
+          </div>
+          
+          <div class="alert alert-warning" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Important:</strong> Admin accounts have full access to all system functions. Ensure admin credentials are kept secure and not shared.
+          </div>
+          
+          <div class="mb-4">
+            <h3 class="h5"><i class="fas fa-sign-in-alt me-2 text-primary"></i>Logging In</h3>
+            <p>To access the admin dashboard:</p>
+            <ol>
+              <li>Click the "Admin Login" button in the site header</li>
+              <li>Enter your username and password</li>
+              <li>Click "Login" to access the admin dashboard</li>
+            </ol>
+            <p>If you've forgotten your password, use the "Forgot Password" link on the login page to reset it.</p>
+          </div>
+          
+          <div class="mb-4">
+            <h3 class="h5"><i class="fas fa-tachometer-alt me-2 text-primary"></i>Dashboard Overview</h3>
+            <div class="row">
+              <div class="col-md-6">
+                <p>The admin dashboard provides a comprehensive overview of the system:</p>
+                <ul>
+                  <li><strong>Sidebar Navigation:</strong> Access all admin functions</li>
+                  <li><strong>Stats Overview:</strong> Quick summary of clients, forms, and submissions</li>
+                  <li><strong>Recent Activity:</strong> Latest actions in the system</li>
+                  <li><strong>Quick Actions:</strong> Shortcuts to common tasks</li>
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <div class="card mb-3">
+                  <div class="card-header bg-light">
+                    <h4 class="h6 mb-0">Primary Admin Functions</h4>
+                  </div>
+                  <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                      <li class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-users text-primary me-3"></i>
+                        <div>
+                          <strong>Client Management</strong>
+                          <div class="small text-muted">Import, edit, and organize client data</div>
+                        </div>
+                      </li>
+                      <li class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-file-alt text-primary me-3"></i>
+                        <div>
+                          <strong>Form Management</strong>
+                          <div class="small text-muted">Create and modify feedback forms</div>
+                        </div>
+                      </li>
+                      <li class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-envelope text-primary me-3"></i>
+                        <div>
+                          <strong>Email Campaigns</strong>
+                          <div class="small text-muted">Send feedback requests to clients</div>
+                        </div>
+                      </li>
+                      <li class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-chart-pie text-primary me-3"></i>
+                        <div>
+                          <strong>Submission Analysis</strong>
+                          <div class="small text-muted">View and analyze feedback responses</div>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <h3 class="h5"><i class="fas fa-user-cog me-2 text-primary"></i>Account Management</h3>
+            <p>Manage your admin account settings:</p>
+            <ol>
+              <li>Click your username in the top-right of the admin dashboard</li>
+              <li>Select "Account Settings" from the dropdown menu</li>
+              <li>Update your profile information, email, or password</li>
+              <li>Click "Save Changes" to apply your updates</li>
+            </ol>
+            <div class="alert alert-info small" role="alert">
+              <i class="fas fa-info-circle me-2"></i>
+              It's recommended to change your password periodically for security purposes.
+            </div>
+          </div>
+        </div>
+        
+        <!-- Forms Tab -->
+        <div class="tab-pane fade" id="forms" role="tabpanel" aria-labelledby="forms-tab">
+          <div class="d-flex align-items-center mb-4">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 48px; height: 48px;">
+              <i class="fas fa-file-alt fs-4"></i>
+            </div>
+            <h2 class="ms-3 mb-0">Form Management</h2>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-plus-circle me-2 text-primary"></i>Creating Forms</h3>
+              <p>To create a new feedback form:</p>
+              <ol>
+                <li>Navigate to "Forms" in the admin sidebar</li>
+                <li>Click the "Create New Form" button</li>
+                <li>Enter a title and description for your form</li>
+                <li>Choose whether to create a single-page or multi-step form</li>
+                <li>Add questions to your form using the form builder</li>
+                <li>Click "Save Form" when complete</li>
+              </ol>
+            </div>
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-question-circle me-2 text-primary"></i>Question Types</h3>
+              <p>The system supports various question types:</p>
+              <div class="table-responsive">
+                <table class="table table-bordered">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Type</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><i class="fas fa-star me-2 text-warning"></i>Rating</td>
+                      <td>Numerical scale (e.g., 1-5 stars)</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fas fa-dot-circle me-2 text-primary"></i>Radio</td>
+                      <td>Single selection from multiple options</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fas fa-check-square me-2 text-success"></i>Checkbox</td>
+                      <td>Multiple selections from options</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fas fa-paragraph me-2 text-info"></i>Textarea</td>
+                      <td>Free-form text responses</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fas fa-font me-2 text-secondary"></i>Text</td>
+                      <td>Single-line text input</td>
+                    </tr>
+                    <tr>
+                      <td><i class="fas fa-list me-2 text-dark"></i>Select</td>
+                      <td>Dropdown menu selection</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <h3 class="h5"><i class="fas fa-edit me-2 text-primary"></i>Editing Forms</h3>
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <p>To edit an existing form:</p>
+                  <ol>
+                    <li>Navigate to "Forms" in the admin sidebar</li>
+                    <li>Find the form you want to edit in the list</li>
+                    <li>Click the "Edit" button (pencil icon) for that form</li>
+                    <li>Make your desired changes to the form structure or questions</li>
+                    <li>Click "Save Changes" to update the form</li>
+                  </ol>
+                  <div class="alert alert-warning small" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Note:</strong> Editing a form will not affect any responses that have already been submitted. However, be cautious when making significant changes to forms that are currently active.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-eye me-2 text-primary"></i>Previewing Forms</h3>
+              <p>Before sending a form to clients, you can preview how it will appear:</p>
+              <ol>
+                <li>Navigate to "Forms" in the admin sidebar</li>
+                <li>Find the form you want to preview</li>
+                <li>Click the "Preview" button (eye icon)</li>
+                <li>This will open the form as clients will see it</li>
+                <li>You can test form functionality by filling it out</li>
+              </ol>
+            </div>
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-trash-alt me-2 text-danger"></i>Deleting Forms</h3>
+              <p>To delete a form you no longer need:</p>
+              <ol>
+                <li>Navigate to "Forms" in the admin sidebar</li>
+                <li>Find the form you want to delete</li>
+                <li>Click the "Delete" button (trash icon)</li>
+                <li>Confirm your decision in the prompt</li>
+              </ol>
+              <div class="alert alert-danger small" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Warning:</strong> Deleting a form is permanent and will also remove access to any submissions for that form. Consider archiving forms instead of deleting if you need to retain historical data.
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Clients Tab -->
+        <div class="tab-pane fade" id="clients" role="tabpanel" aria-labelledby="clients-tab">
+          <div class="d-flex align-items-center mb-4">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 48px; height: 48px;">
+              <i class="fas fa-users fs-4"></i>
+            </div>
+            <h2 class="ms-3 mb-0">Client Management</h2>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-upload me-2 text-primary"></i>Importing Clients</h3>
+              <p>To bulk import clients from a CSV file:</p>
+              <ol>
+                <li>Navigate to "Clients" in the admin sidebar</li>
+                <li>Click the "Import Clients" button</li>
+                <li>Download the template CSV file if needed</li>
+                <li>Prepare your CSV file with client data</li>
+                <li>Upload your CSV file using the file selector</li>
+                <li>Review the preview of data to be imported</li>
+                <li>Click "Confirm Import" to add the clients to the system</li>
+              </ol>
+              <div class="alert alert-info small" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                CSV files should include at minimum: Name and Email columns. Additional data fields will be stored as extra information.
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-user-plus me-2 text-primary"></i>Adding Individual Clients</h3>
+              <p>To add clients one at a time:</p>
+              <ol>
+                <li>Navigate to "Clients" in the admin sidebar</li>
+                <li>Click the "Add Client" button</li>
+                <li>Fill in the client's information (name, email, etc.)</li>
+                <li>Add any additional data fields as needed</li>
+                <li>Click "Save Client" to add them to the system</li>
+              </ol>
+              <div class="alert alert-warning small mt-3" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Email addresses must be unique in the system. Attempting to add a client with an existing email will result in an error.
+              </div>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <h3 class="h5"><i class="fas fa-search me-2 text-primary"></i>Managing Client Data</h3>
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <p>The clients list provides several tools for managing client data:</p>
+                  <div class="table-responsive">
+                    <table class="table">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Function</th>
+                          <th>Description</th>
+                          <th>How to Access</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><i class="fas fa-search me-2 text-primary"></i>Search</td>
+                          <td>Find clients by name, email, or other fields</td>
+                          <td>Use the search box at the top of the clients list</td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-filter me-2 text-success"></i>Filter</td>
+                          <td>View clients by specific criteria</td>
+                          <td>Click "Filter" button and select filter options</td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-edit me-2 text-warning"></i>Edit</td>
+                          <td>Modify client information</td>
+                          <td>Click the "Edit" (pencil) icon for any client</td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-trash-alt me-2 text-danger"></i>Delete</td>
+                          <td>Remove a client from the system</td>
+                          <td>Click the "Delete" (trash) icon for any client</td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-history me-2 text-info"></i>Activity</td>
+                          <td>View a client's submission history</td>
+                          <td>Click the "Activity" icon for any client</td>
+                        </tr>
+                        <tr>
+                          <td><i class="fas fa-envelope me-2 text-secondary"></i>Email</td>
+                          <td>Send a feedback request to specific client</td>
+                          <td>Click the "Email" icon for any client</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-12">
+              <h3 class="h5"><i class="fas fa-download me-2 text-primary"></i>Exporting Client Data</h3>
+              <p>To export your client list:</p>
+              <ol>
+                <li>Navigate to "Clients" in the admin sidebar</li>
+                <li>Apply any filters to select the clients you want to export</li>
+                <li>Click the "Export" button</li>
+                <li>Select your preferred format (CSV or Excel)</li>
+                <li>The file will be downloaded to your computer</li>
+              </ol>
+              <div class="alert alert-info small" role="alert">
+                <i class="fas fa-shield-alt me-2"></i>
+                <strong>Data Protection Note:</strong> Exported client data should be handled securely in compliance with data protection regulations. Ensure the data is only accessed by authorized personnel and stored securely.
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Email Tab -->
+        <div class="tab-pane fade" id="email" role="tabpanel" aria-labelledby="email-tab">
+          <div class="d-flex align-items-center mb-4">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 48px; height: 48px;">
+              <i class="fas fa-envelope fs-4"></i>
+            </div>
+            <h2 class="ms-3 mb-0">Email System</h2>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-paper-plane me-2 text-primary"></i>Sending Feedback Requests</h3>
+              <p>To send feedback form invitations to clients:</p>
+              <ol>
+                <li>Navigate to "Emails" in the admin sidebar</li>
+                <li>Click "New Email Campaign"</li>
+                <li>Select the feedback form to send</li>
+                <li>Choose recipient clients (filter or select individually)</li>
+                <li>Customize the email subject and message</li>
+                <li>Preview the email (optional)</li>
+                <li>Click "Send Emails" to dispatch invitations</li>
+              </ol>
+              <div class="alert alert-info small" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                Each email contains a unique link for the client to access their personalized feedback form.
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-envelope-open-text me-2 text-primary"></i>Email Templates</h3>
+              <p>The system provides customizable email templates:</p>
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <p>Available template variables:</p>
+                  <table class="table table-sm">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Variable</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>{{client_name}}</code></td>
+                        <td>Client's full name</td>
+                      </tr>
+                      <tr>
+                        <td><code>{{form_title}}</code></td>
+                        <td>Title of the feedback form</td>
+                      </tr>
+                      <tr>
+                        <td><code>{{form_link}}</code></td>
+                        <td>Unique link to the feedback form</td>
+                      </tr>
+                      <tr>
+                        <td><code>{{company_name}}</code></td>
+                        <td>Your company name (Dynamic FP)</td>
+                      </tr>
+                      <tr>
+                        <td><code>{{expiry_date}}</code></td>
+                        <td>Date the form link expires (if set)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <h3 class="h5"><i class="fas fa-chart-line me-2 text-primary"></i>Email Tracking</h3>
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <p>The email logs provide detailed information about sent emails:</p>
+                  <ul>
+                    <li><strong>Delivered Status:</strong> Confirms if the email reached the recipient's server</li>
+                    <li><strong>Open Tracking:</strong> Shows if and when the email was opened</li>
+                    <li><strong>Click Tracking:</strong> Records when recipients click the form link</li>
+                    <li><strong>Submission Status:</strong> Indicates whether the form has been completed</li>
+                  </ul>
+                  
+                  <p>To view email logs:</p>
+                  <ol>
+                    <li>Navigate to "Emails" > "Email Logs" in the admin sidebar</li>
+                    <li>Use filters to find specific emails by status, date, or client</li>
+                    <li>Click on any email to view detailed tracking information</li>
+                  </ol>
+                  
+                  <div class="alert alert-warning small" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Note:</strong> Email tracking requires the recipient's email client to load images. Some clients block images by default, which can affect tracking accuracy.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-redo-alt me-2 text-primary"></i>Sending Reminders</h3>
+              <p>To send reminders to clients who haven't completed their feedback form:</p>
+              <ol>
+                <li>Navigate to "Emails" > "Email Logs" in the admin sidebar</li>
+                <li>Filter for emails with "Not Submitted" status</li>
+                <li>Select the clients to remind (individually or all)</li>
+                <li>Click "Send Reminder"</li>
+                <li>Customize the reminder message (if desired)</li>
+                <li>Click "Send" to dispatch the reminders</li>
+              </ol>
+            </div>
+            <div class="col-md-6">
+              <h3 class="h5"><i class="fas fa-cog me-2 text-primary"></i>Email Settings</h3>
+              <p>Customize system-wide email settings:</p>
+              <ol>
+                <li>Navigate to "Settings" in the admin sidebar</li>
+                <li>Scroll to the "Email Settings" section</li>
+                <li>Adjust settings like:</li>
+                <ul>
+                  <li>Default sender name and email</li>
+                  <li>Email footer text</li>
+                  <li>Reply-to address</li>
+                  <li>Email template defaults</li>
+                </ul>
+                <li>Click "Save Changes" to apply new settings</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .workflow-icon {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .workflow-arrow {
+    font-size: 24px;
+  }
+  
+  @media (max-width: 768px) {
+    .workflow-step {
+      margin-bottom: 2rem;
+    }
+  }
+  
+  .tab-content {
+    min-height: 500px;
+  }
+</style>
+
+<script>
+  // Initialize instruction page tour
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('start-instructions-tour').addEventListener('click', function() {
+      const startTourButton = document.getElementById('start-tour');
+      if (startTourButton) {
+        startTourButton.click();
+      }
+    });
+  });
+</script>
+` }) %>

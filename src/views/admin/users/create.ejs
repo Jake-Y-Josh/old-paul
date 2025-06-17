@@ -1,0 +1,117 @@
+<!-- User Creation Form -->
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Create User</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+          <li class="breadcrumb-item"><a href="/admin/users">Users</a></li>
+          <li class="breadcrumb-item active">Create</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-8 mx-auto">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Add New User</h3>
+          </div>
+          <div class="card-body">
+            <form id="createUserForm">
+              <div class="alert alert-danger d-none" id="formError"></div>
+
+              <div class="mb-3">
+                <label for="username" class="form-label">Username*</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+                <div class="form-text">Username must be unique and will be used for login.</div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="email" class="form-label">Email Address*</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+              </div>
+              
+              <div class="mb-3">
+                <label for="password" class="form-label">Password*</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+                <div class="form-text">Password should be at least 8 characters with a mix of letters, numbers, and symbols.</div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="confirm_password" class="form-label">Confirm Password*</label>
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+              </div>
+              
+              <div class="d-flex justify-content-end">
+                <a href="/admin/users" class="btn btn-secondary me-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">Create User</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('createUserForm');
+    const errorAlert = document.getElementById('formError');
+    
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Basic validation
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirm_password').value;
+      
+      if (password !== confirmPassword) {
+        errorAlert.textContent = 'Passwords do not match.';
+        errorAlert.classList.remove('d-none');
+        return;
+      }
+      
+      // Collect form data
+      const formData = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: password,
+        confirm_password: confirmPassword
+      };
+      
+      // Send create request
+      fetch('/admin/users/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Redirect to user list with success message
+          window.location.href = data.redirect || '/admin/users?success=User created successfully';
+        } else {
+          // Show error
+          errorAlert.textContent = data.message || 'Failed to create user';
+          errorAlert.classList.remove('d-none');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        errorAlert.textContent = 'An unexpected error occurred';
+        errorAlert.classList.remove('d-none');
+      });
+    });
+  });
+</script> 

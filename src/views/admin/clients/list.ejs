@@ -1,0 +1,427 @@
+<%- include('../../partials/admin-page-header', {
+  pageTitle: 'Client Management',
+  pageDescription: 'Manage client information and feedback assignments',
+  breadcrumbs: [
+    { label: 'Clients' }
+  ],
+  actionButtons: [
+    { 
+      type: 'button', 
+      label: 'Add Client', 
+      icon: 'fas fa-user-plus', 
+      className: 'btn-primary me-2', 
+      attributes: {
+        'data-bs-toggle': 'modal',
+        'data-bs-target': '#addClientModal'
+      }
+    },
+    { 
+      type: 'link', 
+      url: '/admin/clients/upload', 
+      label: 'Import Clients', 
+      icon: 'fas fa-file-upload', 
+      className: 'btn-success' 
+    }
+  ]
+}) %>
+
+<div class="container-fluid px-4">
+  <!-- Success/Error Messages -->
+  <% if (success) { %>
+    <div class="alert alert-success mb-0">
+      <p class="mb-0"><%= success %></p>
+    </div>
+  <% } %>
+
+  <div class="card">
+    <div class="card-body">
+      <% if (clients && clients.length > 0) { %>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% clients.forEach(client => { %>
+                <tr id="client-<%= client.id %>">
+                  <td><%= client.name %></td>
+                  <td><%= client.email %></td>
+                  <td><%= new Date(client.created_at).toLocaleDateString() %></td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-primary edit-client" 
+                        data-id="<%= client.id %>" 
+                        data-name="<%= client.name %>" 
+                        data-email="<%= client.email %>">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-success send-survey" 
+                        data-id="<%= client.id %>" 
+                        data-name="<%= client.name %>" 
+                        data-email="<%= client.email %>">
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-danger delete-client" 
+                        data-id="<%= client.id %>" 
+                        data-name="<%= client.name %>">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="alert alert-info mb-0">
+          <p class="mb-0">No clients found. Add clients using the "Add Client" button or import them from a CSV file.</p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal fade" id="addClientModal" tabindex="-1" aria-labelledby="addClientModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addClientModalLabel">Add New Client</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addClientForm">
+          <div class="mb-3">
+            <label for="client-name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="client-name" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label for="client-email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="client-email" name="email" required>
+          </div>
+        </form>
+        <div class="alert alert-danger mt-3 d-none" id="addClientError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="addClientButton">Add Client</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Client Modal -->
+<div class="modal fade" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editClientModalLabel">Edit Client</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editClientForm">
+          <input type="hidden" id="edit-client-id" name="id">
+          <div class="mb-3">
+            <label for="edit-client-name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="edit-client-name" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit-client-email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="edit-client-email" name="email" required>
+          </div>
+        </form>
+        <div class="alert alert-danger mt-3 d-none" id="editClientError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="updateClientButton">Update Client</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Client Modal -->
+<div class="modal fade" id="deleteClientModal" tabindex="-1" aria-labelledby="deleteClientModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteClientModalLabel">Delete Client</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="delete-client-name"></strong>?</p>
+        <p class="text-danger">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteButton">Delete Client</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Send Survey Modal -->
+<div class="modal fade" id="sendSurveyModal" tabindex="-1" aria-labelledby="sendSurveyModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sendSurveyModalLabel">Send Survey to Client</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="sendSurveyForm">
+          <input type="hidden" id="client-id-for-survey" name="clientId">
+          <div class="mb-3">
+            <p>Send a survey to <strong id="client-name-for-survey"></strong>.</p>
+            <label for="form-select" class="form-label">Select Form</label>
+            <select class="form-select" id="form-select" name="formId" required>
+              <option value="" selected disabled>Choose a form...</option>
+              <% if (forms && forms.length > 0) { %>
+                <% forms.forEach(form => { %>
+                  <option value="<%= form.id %>"><%= form.title %></option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
+        </form>
+        <div class="alert alert-danger mt-3 d-none" id="sendSurveyError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="sendSurveyButton">Send Survey</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all modals
+    const addClientModal = new bootstrap.Modal(document.getElementById('addClientModal'));
+    const editClientModal = new bootstrap.Modal(document.getElementById('editClientModal'));
+    const deleteClientModal = new bootstrap.Modal(document.getElementById('deleteClientModal'));
+    const sendSurveyModal = new bootstrap.Modal(document.getElementById('sendSurveyModal'));
+    
+    // Edit client - populate modal fields
+    const editBtns = document.querySelectorAll('.edit-client');
+    editBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('edit-client-id').value = btn.dataset.id;
+        document.getElementById('edit-client-name').value = btn.dataset.name;
+        document.getElementById('edit-client-email').value = btn.dataset.email;
+        editClientModal.show();
+      });
+    });
+    
+    // Delete confirmation
+    const deleteBtns = document.querySelectorAll('.delete-client');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteButton');
+    let deleteUrl = '';
+    
+    deleteBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const itemName = btn.dataset.name;
+        deleteUrl = `/admin/clients/${btn.dataset.id}`;
+        
+        document.getElementById('delete-client-name').textContent = itemName;
+        deleteClientModal.show();
+      });
+    });
+    
+    // Send Survey functionality
+    const sendSurveyBtns = document.querySelectorAll('.send-survey');
+    const sendSurveyForm = document.getElementById('sendSurveyForm');
+    const sendSurveyBtn = document.getElementById('sendSurveyButton');
+    const sendSurveyError = document.getElementById('sendSurveyError');
+    
+    if (sendSurveyBtns.length > 0) {
+      sendSurveyBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('client-id-for-survey').value = btn.dataset.id;
+          document.getElementById('client-name-for-survey').textContent = btn.dataset.name;
+          
+          // Reset form selection
+          const formSelect = document.getElementById('form-select');
+          if (formSelect) {
+            formSelect.value = "";
+          }
+          
+          // Hide any previous errors
+          sendSurveyError.classList.add('d-none');
+          sendSurveyModal.show();
+        });
+      });
+    }
+    
+    // Add send survey form submission handler
+    if (sendSurveyBtn) {
+      sendSurveyBtn.addEventListener('click', async () => {
+        // Reset error state
+        sendSurveyError.classList.add('d-none');
+        
+        // Show loading state
+        sendSurveyBtn.disabled = true;
+        sendSurveyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Sending...';
+        
+        try {
+          const formData = new FormData(sendSurveyForm);
+          const clientId = formData.get('clientId');
+          const formId = formData.get('formId');
+          
+          // Validate form selection
+          if (!formId) {
+            throw new Error('Please select a survey form');
+          }
+          
+          // Send the survey
+          const response = await fetch('/admin/emails/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              formId: formId,
+              clientIds: [clientId]
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            sendSurveyModal.hide();
+            window.location.href = '/admin/clients?success=' + encodeURIComponent(result.message || 'Survey sent successfully');
+          } else {
+            throw new Error(result.message || 'Failed to send survey');
+          }
+        } catch (error) {
+          console.error('Send survey error:', error);
+          sendSurveyError.textContent = error.message;
+          sendSurveyError.classList.remove('d-none');
+        } finally {
+          // Reset button state
+          sendSurveyBtn.disabled = false;
+          sendSurveyBtn.innerHTML = 'Send Survey';
+        }
+      });
+    }
+    
+    // Add client form submission
+    const addClientBtn = document.getElementById('addClientButton');
+    const addClientForm = document.getElementById('addClientForm');
+    const addClientError = document.getElementById('addClientError');
+    
+    if (addClientBtn) {
+      addClientBtn.addEventListener('click', async () => {
+        const formData = new FormData(addClientForm);
+        const clientData = {
+          name: formData.get('name'),
+          email: formData.get('email')
+        };
+        
+        try {
+          const response = await fetch('/admin/clients/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(clientData)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            addClientModal.hide();
+            window.location.href = '/admin/clients?success=' + encodeURIComponent(result.message);
+          } else {
+            addClientError.textContent = result.message;
+            addClientError.classList.remove('d-none');
+          }
+        } catch (error) {
+          console.error('Add client error:', error);
+          addClientError.textContent = 'An error occurred while processing your request.';
+          addClientError.classList.remove('d-none');
+        }
+      });
+    }
+
+    // Update client form submission
+    const updateClientBtn = document.getElementById('updateClientButton');
+    const editClientForm = document.getElementById('editClientForm');
+    const editClientError = document.getElementById('editClientError');
+    
+    if (updateClientBtn) {
+      updateClientBtn.addEventListener('click', async () => {
+        const formData = new FormData(editClientForm);
+        const clientId = formData.get('id');
+        const clientData = {
+          name: formData.get('name'),
+          email: formData.get('email')
+        };
+        
+        try {
+          const response = await fetch(`/admin/clients/${clientId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(clientData)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            editClientModal.hide();
+            window.location.href = '/admin/clients?success=' + encodeURIComponent(result.message);
+          } else {
+            editClientError.textContent = result.message;
+            editClientError.classList.remove('d-none');
+          }
+        } catch (error) {
+          console.error('Update client error:', error);
+          editClientError.textContent = 'An error occurred while processing your request.';
+          editClientError.classList.remove('d-none');
+        }
+      });
+    }
+
+    // Handle delete confirmation
+    if (confirmDeleteBtn) {
+      confirmDeleteBtn.addEventListener('click', async () => {
+        try {
+          const response = await fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            deleteClientModal.hide();
+            window.location.href = '/admin/clients?success=' + encodeURIComponent(result.message);
+          } else {
+            console.error('Delete failed:', result.message);
+            alert('Error: ' + result.message);
+          }
+        } catch (error) {
+          console.error('Delete error:', error);
+          alert('An error occurred while processing your request.');
+        }
+      });
+    }
+  });
+</script> 

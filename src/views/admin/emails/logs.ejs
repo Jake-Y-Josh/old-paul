@@ -1,0 +1,163 @@
+<%- include('../../partials/admin-page-header', {
+  pageTitle: 'Email Logs',
+  pageDescription: 'View history of all sent emails',
+  breadcrumbs: [
+    { label: 'Emails', href: '/admin/emails' },
+    { label: 'Logs' }
+  ]
+}) %>
+
+<div class="container-fluid px-4">
+  <!-- Success/Error Messages -->
+  <% if (locals.success && locals.success.length > 0) { %>
+    <div class="alert alert-success">
+      <i class="fas fa-check-circle me-2"></i> <%= locals.success %>
+    </div>
+  <% } %>
+  
+  <% if (locals.error && locals.error.length > 0) { %>
+    <div class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i> <%= locals.error %>
+    </div>
+  <% } %>
+
+  <div class="card">
+    <div class="card-body">
+      <% if (logs && logs.length > 0) { %>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Recipient</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>Type</th>
+                <th>Sent At</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% logs.forEach(log => { %>
+                <tr>
+                  <td><%= log.to_email || log.client_email || 'No recipient found' %></td>
+                  <td><%= log.subject %></td>
+                  <td>
+                    <% if (log.status === 'sent' || log.status === 'delivered') { %>
+                      <span class="badge bg-success"><%= log.status %></span>
+                    <% } else if (log.status === 'error' || log.status === 'failed' || log.status === 'bounced') { %>
+                      <span class="badge bg-danger"><%= log.status %></span>
+                    <% } else if (log.status === 'pending') { %>
+                      <span class="badge bg-warning text-dark"><%= log.status %></span>
+                    <% } else { %>
+                      <span class="badge bg-secondary"><%= log.status %></span>
+                    <% } %>
+                  </td>
+                  <td><%= log.type %></td>
+                  <td><%= new Date(log.sent_at).toLocaleString() %></td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-secondary view-email-details" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#emailDetailsModal"
+                            data-recipient="<%= log.to_email %>"
+                            data-subject="<%= log.subject %>"
+                            data-status="<%= log.status %>"
+                            data-type="<%= log.type %>"
+                            data-sent="<%= new Date(log.sent_at).toLocaleString() %>"
+                            data-message-id="<%= log.message_id %>"
+                            data-opened="<%= log.opened ? 'Yes' + (log.opened_at ? ' (' + new Date(log.opened_at).toLocaleString() + ')' : '') : 'No' %>"
+                            data-clicked="<%= log.clicked ? 'Yes' + (log.clicked_at ? ' (' + new Date(log.clicked_at).toLocaleString() + ')' : '') : 'No' %>"
+                            data-error="<%= log.error || 'None' %>">
+                      <i class="fas fa-eye"></i> Details
+                    </button>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="alert alert-info mb-0">
+          <i class="fas fa-info-circle me-2"></i> No email logs found.
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Email Details Modal -->
+<div class="modal fade" id="emailDetailsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Email Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered">
+          <tr>
+            <th class="table-light" style="width: 30%">Recipient</th>
+            <td id="modal-recipient"></td>
+          </tr>
+          <tr>
+            <th class="table-light">Subject</th>
+            <td id="modal-subject"></td>
+          </tr>
+          <tr>
+            <th class="table-light">Status</th>
+            <td id="modal-status"></td>
+          </tr>
+          <tr>
+            <th class="table-light">Type</th>
+            <td id="modal-type"></td>
+          </tr>
+          <tr>
+            <th class="table-light">Sent At</th>
+            <td id="modal-sent"></td>
+          </tr>
+          <tr>
+            <th class="table-light">Message ID</th>
+            <td id="modal-message-id"></td>
+          </tr>
+          <tr>
+            <th class="table-light">Opened</th>
+            <td id="modal-opened"></td>
+          </tr>
+          <tr>
+            <th class="table-light">Clicked</th>
+            <td id="modal-clicked"></td>
+          </tr>
+          <tr>
+            <th class="table-light">Error</th>
+            <td id="modal-error"></td>
+          </tr>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle email details modal
+  const emailDetailsModal = document.getElementById('emailDetailsModal');
+  if (emailDetailsModal) {
+    emailDetailsModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const data = button.dataset;
+      
+      document.getElementById('modal-recipient').textContent = data.recipient || 'No recipient found';
+      document.getElementById('modal-subject').textContent = data.subject;
+      document.getElementById('modal-status').textContent = data.status;
+      document.getElementById('modal-type').textContent = data.type;
+      document.getElementById('modal-sent').textContent = data.sent;
+      document.getElementById('modal-message-id').textContent = data.messageId;
+      document.getElementById('modal-opened').textContent = data.opened;
+      document.getElementById('modal-clicked').textContent = data.clicked;
+      document.getElementById('modal-error').textContent = data.error;
+    });
+  }
+});
+</script> 

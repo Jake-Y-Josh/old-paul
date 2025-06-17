@@ -1,0 +1,304 @@
+<%- include('../partials/admin-page-header', {
+  pageTitle: 'System Settings',
+  pageDescription: 'Configure system-wide settings and preferences',
+  breadcrumbs: [
+    { label: 'Settings' }
+  ]
+}) %>
+
+<div class="container-fluid px-4">
+  <% if (success) { %>
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  <i class="fas fa-check-circle me-2"></i> <%= success %>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+<% } %>
+
+<% if (error) { %>
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  <i class="fas fa-exclamation-circle me-2"></i> <%= error %>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+<% } %>
+
+<div class="row">
+  <div class="col-md-12">
+    <div class="card mb-4">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Email Settings</h5>
+          <button id="test-email-config" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-paper-plane me-1"></i> Test Configuration
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <form id="emailSettingsForm" action="/admin/settings/update" method="POST">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="EMAIL_FROM" class="form-label">From Email</label>
+              <input type="email" class="form-control" id="EMAIL_FROM" name="settings[EMAIL_FROM]" 
+                     value="<%= settings.EMAIL_FROM ? settings.EMAIL_FROM.value : process.env.EMAIL_FROM || 'feedback@dynamic-fp.co.uk' %>"
+                     placeholder="feedback@dynamic-fp.co.uk">
+              <% if (!settings.EMAIL_FROM || !settings.EMAIL_FROM.value) { %>
+                <div class="form-text text-muted">Default: <%= process.env.EMAIL_FROM || 'feedback@dynamic-fp.co.uk' %></div>
+              <% } %>
+            </div>
+            <div class="col-md-6">
+              <label for="EMAIL_FROM_NAME" class="form-label">From Name</label>
+              <input type="text" class="form-control" id="EMAIL_FROM_NAME" name="settings[EMAIL_FROM_NAME]" 
+                     value="<%= settings.EMAIL_FROM_NAME ? settings.EMAIL_FROM_NAME.value : process.env.EMAIL_FROM_NAME || 'Dynamic FP Feedback' %>"
+                     placeholder="Dynamic FP Feedback">
+              <% if (!settings.EMAIL_FROM_NAME || !settings.EMAIL_FROM_NAME.value) { %>
+                <div class="form-text text-muted">Default: <%= process.env.EMAIL_FROM_NAME || 'Dynamic FP Feedback' %></div>
+              <% } %>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="EMAIL_REPLY_TO" class="form-label">Reply-To Email</label>
+              <input type="email" class="form-control" id="EMAIL_REPLY_TO" name="settings[EMAIL_REPLY_TO]" 
+                     value="<%= settings.EMAIL_REPLY_TO ? settings.EMAIL_REPLY_TO.value : process.env.EMAIL_REPLY_TO || 'enquiries@dynamic-fp.co.uk' %>"
+                     placeholder="enquiries@dynamic-fp.co.uk">
+              <% if (!settings.EMAIL_REPLY_TO || !settings.EMAIL_REPLY_TO.value) { %>
+                <div class="form-text text-muted">Default: <%= process.env.EMAIL_REPLY_TO || 'enquiries@dynamic-fp.co.uk' %></div>
+              <% } %>
+            </div>
+            <div class="col-md-6">
+              <label for="NOTIFICATION_EMAILS" class="form-label">Notification Emails</label>
+              <input type="text" class="form-control" id="NOTIFICATION_EMAILS" name="settings[NOTIFICATION_EMAILS]" 
+                     value="<%= settings.NOTIFICATION_EMAILS ? settings.NOTIFICATION_EMAILS.value : process.env.NOTIFICATION_EMAILS || '' %>"
+                     placeholder="admin@example.com, support@example.com">
+              <div class="form-text">For multiple emails, separate with commas.</div>
+              <% if (!settings.NOTIFICATION_EMAILS || !settings.NOTIFICATION_EMAILS.value) { %>
+                <div class="form-text text-muted">Default: <%= process.env.NOTIFICATION_EMAILS || 'No notifications' %></div>
+              <% } %>
+            </div>
+          </div>
+          
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary" id="save-settings">
+              <i class="fas fa-save me-1"></i> Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h5 class="mb-0">Email Template Settings</h5>
+  </div>
+  <div class="card-body">
+    <form id="emailTemplateForm">
+      <div class="mb-4">
+        <label class="form-label">Email Template</label>
+        <div class="alert alert-info">
+          Available variables:
+          <ul class="mb-0">
+            <li><code>{clientName}</code> - Client's name</li>
+            <li><code>{formTitle}</code> - Form title</li>
+            <li><code>{formLink}</code> - Feedback form link</li>
+          </ul>
+        </div>
+        <textarea class="form-control mb-3" name="emailTemplate" rows="8" style="font-family: monospace;">Dear {clientName},
+
+I hope this email finds you well. I would greatly appreciate your feedback on our recent services.
+
+Please take a moment to complete this brief feedback form: {formTitle}
+
+You can access the form here: {formLink}
+
+Thank you for your time and valuable feedback.
+
+Best regards,</textarea>
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label">Email Signature</label>
+        <div id="signatureEditor">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-control" name="signatureName" value="<%= settings?.signature?.name || 'Paul Campion' %>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-control" name="signatureTitle" value="<%= settings?.signature?.title || 'Chartered Financial Planner' %>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Contact Information</label>
+            <textarea class="form-control" name="signatureContact" rows="3"><%= settings?.signature?.contact || '07966 138 408\n01494 327 320\nThe Stables, Manor Courtyard, Aston Sandford, Buckinghamshire. HP17 8JB' %></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Company Logo URL</label>
+            <input type="text" class="form-control" name="signatureLogoUrl" value="<%= settings?.signature?.logoUrl || '/images/Dynamic-Orange.svg' %>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Legal Text</label>
+            <textarea class="form-control" name="signatureLegal" rows="4"><%= settings?.signature?.legal || 'Dynamic FP is a trading name of Dynamic Financial Planning Ltd who is an appointed representative of Best Practice IFA Group Limited which is authorised and regulated by the Financial Conduct Authority, registration number 223112.\nRegistered office Barney Cottage, 2 Southend, Haddenham, Buckinghamshire.  HP17 8BH.  Registered in England under number 14946756' %></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Preview</label>
+        <div class="border p-3 bg-light" id="signaturePreview">
+          <!-- Preview will be updated via JavaScript -->
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-save me-2"></i>Save Email Settings
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Test Email Modal -->
+<div class="modal fade" id="testEmailModal" tabindex="-1" aria-labelledby="testEmailModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="testEmailModalLabel">Test Email Configuration</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i> 
+          This will test your email configuration by verifying SMTP connection.
+        </div>
+        <div id="test-result" class="d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="run-email-test">
+          <i class="fas fa-paper-plane me-1"></i> Test Connection
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Handle test email connection
+    const testEmailBtn = document.getElementById('test-email-config');
+    if (testEmailBtn) {
+      testEmailBtn.addEventListener('click', function() {
+        // Show the test email modal
+        const testModal = new bootstrap.Modal(document.getElementById('testEmailModal'));
+        testModal.show();
+      });
+    }
+    
+    // Handle running the email test
+    const runTestBtn = document.getElementById('run-email-test');
+    if (runTestBtn) {
+      runTestBtn.addEventListener('click', async function() {
+        // Show loading state
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Testing...';
+        
+        const resultDiv = document.getElementById('test-result');
+        resultDiv.className = 'd-block';
+        resultDiv.innerHTML = '<div class="alert alert-info">Testing SMTP connection...</div>';
+        
+        try {
+          // Call API to test connection
+          const response = await fetch('/admin/settings/test-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          const result = await response.json();
+          
+          // Display result
+          if (result.success) {
+            resultDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i> ' + result.message + '</div>';
+          } else {
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i> ' + result.message + '</div>';
+          }
+        } catch (error) {
+          // Display error
+          resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i> An error occurred while testing the connection. Please try again.</div>';
+        } finally {
+          // Reset button state
+          this.disabled = false;
+          this.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Test Connection';
+        }
+      });
+    }
+
+    const form = document.getElementById('emailTemplateForm');
+    const preview = document.getElementById('signaturePreview');
+    
+    function updatePreview() {
+      const name = form.signatureName.value;
+      const title = form.signatureTitle.value;
+      const contact = form.signatureContact.value;
+      const logoUrl = form.signatureLogoUrl.value;
+      const legal = form.signatureLegal.value;
+      
+      preview.innerHTML = `
+        <div style="font-family: Arial, sans-serif;">
+          <div style="font-size: 18px; font-weight: 700; font-style: italic; color: #00a0dc;">${name}</div>
+          <div style="font-size: 16px; font-style: italic; color: #ff6b00; font-weight: 300;">${title}</div>
+          <hr style="border-top: 1px solid #ddd; margin: 10px 0;">
+          <div style="color: #00a0dc; font-size: 14px;">${contact.replace(/\n/g, '<br>')}</div>
+          <hr style="border-top: 1px solid #ddd; margin: 10px 0;">
+          <img src="${logoUrl}" alt="Dynamic Financial Planning" style="max-width: 200px; height: auto;">
+          <div style="font-size: 11px; color: #666; margin-top: 10px;">${legal.replace(/\n/g, '<br>')}</div>
+        </div>
+      `;
+    }
+    
+    // Update preview when any input changes
+    form.querySelectorAll('input, textarea').forEach(input => {
+      input.addEventListener('input', updatePreview);
+    });
+    
+    // Initial preview
+    updatePreview();
+    
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = {
+        emailTemplate: form.emailTemplate.value,
+        signature: {
+          name: form.signatureName.value,
+          title: form.signatureTitle.value,
+          contact: form.signatureContact.value,
+          logoUrl: form.signatureLogoUrl.value,
+          legal: form.signatureLegal.value
+        }
+      };
+      
+      try {
+        const response = await fetch('/admin/settings/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          window.location.href = '/admin/settings?success=Email settings updated successfully';
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        console.error('Error saving email settings:', error);
+        alert('Failed to save email settings: ' + error.message);
+      }
+    });
+  });
+</script> 

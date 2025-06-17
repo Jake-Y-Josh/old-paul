@@ -1,0 +1,140 @@
+<%- include('../../partials/admin-page-header', {
+  pageTitle: 'Feedback Forms',
+  pageDescription: 'Manage and customize feedback forms for your clients',
+  breadcrumbs: [
+    { label: 'Forms' }
+  ],
+  actionButtons: [
+    { 
+      type: 'link', 
+      url: '/admin/forms/create', 
+      label: 'Create New Form', 
+      icon: 'fas fa-plus-circle', 
+      className: 'btn-primary' 
+    }
+  ]
+}) %>
+
+<div class="container-fluid px-4">
+  <!-- Success/Error Messages -->
+  <% if (success) { %>
+    <div class="alert alert-success">
+      <p class="mb-0"><%= success %></p>
+    </div>
+  <% } %>
+
+  <% if (error) { %>
+    <div class="alert alert-danger">
+      <p class="mb-0"><%= error %></p>
+    </div>
+  <% } %>
+
+  <div class="card">
+    <div class="card-body">
+      <% if (forms && forms.length > 0) { %>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Created By</th>
+                <th>Created</th>
+                <th>Last Updated</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% forms.forEach(form => { %>
+                <tr>
+                  <td><%= form.title %></td>
+                  <td><%= form.created_by_username || 'Unknown' %></td>
+                  <td><%= new Date(form.created_at).toLocaleDateString() %></td>
+                  <td><%= new Date(form.updated_at).toLocaleDateString() %></td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <a href="/admin/forms/<%= form.id %>/edit" class="btn btn-outline-primary">
+                        <i class="fas fa-edit"></i> Edit
+                      </a>
+                      <a href="/admin/forms/<%= form.id %>/submissions" class="btn btn-outline-secondary">
+                        <i class="fas fa-list-alt"></i> Results
+                      </a>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-danger delete-form-btn" 
+                        data-id="<%= form.id %>" 
+                        data-title="<%= form.title %>">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="alert alert-info">
+          <p class="mb-0">No forms found. <a href="/admin/forms/create" class="alert-link">Create your first form</a> to get started.</p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Form Modal -->
+<div class="modal fade" id="deleteFormModal" tabindex="-1" aria-labelledby="deleteFormModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteFormModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the form "<span id="delete-form-title"></span>"?</p>
+        <p class="text-danger mb-0">This action cannot be undone and will delete all associated submissions.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteForm">Delete Form</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const deleteBtns = document.querySelectorAll('.delete-form-btn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteForm');
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteFormModal'));
+    let formToDelete = null;
+    
+    deleteBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        formToDelete = this.dataset.id;
+        document.getElementById('delete-form-title').textContent = this.dataset.title;
+        deleteModal.show();
+      });
+    });
+    
+    confirmDeleteBtn.addEventListener('click', async function() {
+      if (!formToDelete) return;
+      
+      try {
+        const response = await fetch(`/admin/forms/${formToDelete}`, {
+          method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          window.location.reload();
+        } else {
+          alert(result.message || 'Failed to delete form');
+        }
+      } catch (error) {
+        console.error('Error deleting form:', error);
+        alert('An error occurred while deleting the form');
+      }
+    });
+  });
+</script>

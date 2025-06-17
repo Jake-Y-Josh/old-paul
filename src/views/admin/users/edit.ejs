@@ -1,0 +1,153 @@
+<%- include('../../partials/admin-page-header', {
+  pageTitle: 'Edit User',
+  breadcrumbs: [
+    { url: '/admin/users', label: 'Users' },
+    { label: 'Edit' }
+  ]
+}) %>
+
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Edit User: <%= user.username %></h3>
+      </div>
+      <div class="card-body">
+        <form id="editUserForm" data-id="<%= user.id %>">
+          <div class="alert alert-danger d-none" id="formError"></div>
+          <div class="alert alert-success d-none" id="formSuccess"></div>
+
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" name="username" value="<%= user.username %>" readonly>
+            <div class="form-text">Username cannot be changed.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="email" class="form-label">Email Address*</label>
+            <input type="email" class="form-control" id="email" name="email" value="<%= user.email %>" required>
+          </div>
+          
+          <hr class="my-4">
+          
+          <h4>Change Password</h4>
+          <p class="text-muted">Leave blank to keep current password</p>
+          
+          <div class="mb-3">
+            <label for="current_password" class="form-label">Current Password</label>
+            <input type="password" class="form-control" id="current_password" name="current_password">
+          </div>
+          
+          <div class="mb-3">
+            <label for="new_password" class="form-label">New Password</label>
+            <input type="password" class="form-control" id="new_password" name="new_password">
+          </div>
+          
+          <div class="mb-3">
+            <label for="confirm_password" class="form-label">Confirm New Password</label>
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+          </div>
+          
+          <div class="d-flex justify-content-end mt-4">
+            <a href="/admin/users" class="btn btn-outline-secondary me-2">Cancel</a>
+            <button type="submit" class="btn btn-primary">Update User</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editUserForm');
+    const errorAlert = document.getElementById('formError');
+    const successAlert = document.getElementById('formSuccess');
+    const userId = form.getAttribute('data-id');
+    
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Hide previous alerts
+      errorAlert.classList.add('d-none');
+      successAlert.classList.add('d-none');
+      
+      // Basic validation for password fields
+      const currentPassword = document.getElementById('current_password').value;
+      const newPassword = document.getElementById('new_password').value;
+      const confirmPassword = document.getElementById('confirm_password').value;
+      
+      // If changing password, ensure all password fields are filled
+      if ((currentPassword || newPassword || confirmPassword) && 
+          !(currentPassword && newPassword && confirmPassword)) {
+        errorAlert.textContent = 'All password fields are required to change password.';
+        errorAlert.classList.remove('d-none');
+        return;
+      }
+      
+      // Check if new passwords match
+      if (newPassword && newPassword !== confirmPassword) {
+        errorAlert.textContent = 'New passwords do not match.';
+        errorAlert.classList.remove('d-none');
+        return;
+      }
+      
+      // Collect form data
+      const formData = {
+        email: document.getElementById('email').value,
+      };
+      
+      // Add password data if included
+      if (currentPassword && newPassword) {
+        formData.current_password = currentPassword;
+        formData.new_password = newPassword;
+        formData.confirm_password = confirmPassword;
+      }
+      
+      // Send update request
+      fetch(`/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          if (data.redirect) {
+            // Redirect to user list with success message
+            window.location.href = data.redirect;
+          } else {
+            // Clear password fields
+            document.getElementById('current_password').value = '';
+            document.getElementById('new_password').value = '';
+            document.getElementById('confirm_password').value = '';
+            
+            // Show success message
+            successAlert.textContent = data.message || 'User updated successfully';
+            successAlert.classList.remove('d-none');
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+          }
+        } else {
+          // Show error
+          errorAlert.textContent = data.message || 'Failed to update user';
+          errorAlert.classList.remove('d-none');
+          
+          // Scroll to top
+          window.scrollTo(0, 0);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        errorAlert.textContent = 'An unexpected error occurred';
+        errorAlert.classList.remove('d-none');
+        
+        // Scroll to top
+        window.scrollTo(0, 0);
+      });
+    });
+  });
+</script> 
