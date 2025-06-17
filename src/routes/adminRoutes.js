@@ -5,7 +5,7 @@ const path = require('path');
 const { isAuthenticated, isNotAuthenticated } = require('../middlewares/auth');
 const adminController = require('../controllers/adminController');
 const formController = require('../controllers/formController');
-const clientController = require('../controllers/clientController');
+const clientController = require('../controllers/admin/clientController');
 const emailController = require('../controllers/emailController');
 const settingsController = require('../controllers/settingsController');
 const userRoutes = require('./admin/userRoutes');
@@ -70,6 +70,7 @@ router.get('/clients', isAuthenticated, clientController.listClients);
 router.get('/clients/upload', isAuthenticated, clientController.csvUploadPage);
 router.post('/clients/upload', isAuthenticated, upload.single('file'), clientController.uploadCsv);
 router.post('/clients/create', isAuthenticated, clientController.createClient);
+router.put('/clients/:id', isAuthenticated, clientController.updateClient);
 router.delete('/clients/:id', isAuthenticated, clientController.deleteClient);
 
 // Email management
