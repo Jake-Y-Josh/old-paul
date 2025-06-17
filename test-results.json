@@ -1,0 +1,254 @@
+[
+  {
+    "url": "http://localhost:3005/",
+    "description": "Homepage",
+    "status": 200,
+    "title": "Home | Dynamic FP Feedback System",
+    "hasError": false,
+    "success": true,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:11.900Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/login",
+    "description": "Admin Login Page",
+    "status": 200,
+    "title": "Admin Login | Client Feedback System",
+    "hasError": false,
+    "success": true,
+    "pageSpecificChecks": {
+      "hasLoginForm": true,
+      "hasUsernameField": true,
+      "hasPasswordField": true
+    },
+    "timestamp": "2025-06-17T22:05:12.799Z"
+  },
+  {
+    "url": "http://localhost:3005/feedback/submit/1",
+    "description": "Feedback Form (ID: 1)",
+    "status": 404,
+    "title": "Error | Dynamic FP Feedback System",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:13.483Z"
+  },
+  {
+    "url": "http://localhost:3005/feedback/submit/999",
+    "description": "Feedback Form (Invalid ID)",
+    "status": 404,
+    "title": "Error | Dynamic FP Feedback System",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:14.072Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/dashboard",
+    "description": "Admin Dashboard (No Auth)",
+    "status": 200,
+    "title": "Admin Login | Client Feedback System",
+    "hasError": false,
+    "success": true,
+    "pageSpecificChecks": {
+      "hasNavbar": false,
+      "hasSidebar": false
+    },
+    "timestamp": "2025-06-17T22:05:14.750Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/forms",
+    "description": "Forms Management (No Auth)",
+    "status": 200,
+    "title": "Admin Login | Client Feedback System",
+    "hasError": false,
+    "success": true,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:15.451Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/clients",
+    "description": "Clients Management (No Auth)",
+    "status": 200,
+    "title": "Admin Login | Client Feedback System",
+    "hasError": false,
+    "success": true,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:16.133Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/submissions",
+    "description": "Submissions (No Auth)",
+    "status": 200,
+    "title": "Admin Login | Client Feedback System",
+    "hasError": false,
+    "success": true,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:16.833Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/emails",
+    "description": "Email Management (No Auth)",
+    "status": 404,
+    "title": "Error | Dynamic FP Feedback System",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:17.433Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/settings",
+    "description": "Settings (No Auth)",
+    "status": 200,
+    "title": "Admin Login | Client Feedback System",
+    "hasError": false,
+    "success": true,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:18.130Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/dashboard",
+    "description": "Admin Dashboard (Authenticated)",
+    "status": 200,
+    "title": "Admin Dashboard | Dynamic FP Admin Dashboard",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {
+      "hasNavbar": true,
+      "hasSidebar": true
+    },
+    "timestamp": "2025-06-17T22:05:19.934Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/forms",
+    "description": "Forms Management (Authenticated)",
+    "status": 200,
+    "title": "Feedback Forms | Dynamic FP Admin Dashboard",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:20.548Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/forms/new",
+    "description": "Create New Form",
+    "status": 404,
+    "title": "Error | Dynamic FP Feedback System",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:21.147Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/forms/1/edit",
+    "description": "Edit Form (ID: 1)",
+    "status": 200,
+    "title": "Edit Feedback Form | Dynamic FP Admin Dashboard",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:21.885Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/clients",
+    "description": "Clients Management (Authenticated)",
+    "status": 200,
+    "title": "Client Management | Dynamic FP Admin Dashboard",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:22.531Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/clients/new",
+    "description": "Add New Client",
+    "status": 404,
+    "title": "Error | Dynamic FP Feedback System",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:23.143Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/clients/1/edit",
+    "description": "Edit Client (ID: 1)",
+    "status": 404,
+    "title": "Error | Dynamic FP Feedback System",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:23.754Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/submissions",
+    "description": "Submissions (Authenticated)",
+    "status": 200,
+    "title": "Submissions | Dynamic FP Admin Dashboard",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:24.400Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/emails",
+    "description": "Email Management (Authenticated)",
+    "status": 404,
+    "title": "Error | Dynamic FP Feedback System",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:24.997Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/settings",
+    "description": "Settings (Authenticated)",
+    "status": 200,
+    "title": "System Settings | Dynamic FP Admin Dashboard",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:25.695Z"
+  },
+  {
+    "url": "http://localhost:3005/admin/profile",
+    "description": "Admin Profile",
+    "status": 404,
+    "title": "Error | Dynamic FP Feedback System",
+    "hasError": true,
+    "success": false,
+    "pageSpecificChecks": {},
+    "timestamp": "2025-06-17T22:05:26.300Z"
+  },
+  {
+    "url": "http://localhost:3005/api/forms",
+    "description": "Get all forms",
+    "status": 404,
+    "success": false,
+    "type": "API",
+    "timestamp": "2025-06-17T22:05:26.304Z"
+  },
+  {
+    "url": "http://localhost:3005/api/clients",
+    "description": "Get all clients",
+    "status": 404,
+    "success": false,
+    "type": "API",
+    "timestamp": "2025-06-17T22:05:26.306Z"
+  },
+  {
+    "url": "http://localhost:3005/api/submissions",
+    "description": "Get all submissions",
+    "status": 404,
+    "success": false,
+    "type": "API",
+    "timestamp": "2025-06-17T22:05:26.309Z"
+  },
+  {
+    "url": "http://localhost:3005/api/emails/logs",
+    "description": "Get email logs",
+    "status": 404,
+    "success": false,
+    "type": "API",
+    "timestamp": "2025-06-17T22:05:26.311Z"
+  }
+]
