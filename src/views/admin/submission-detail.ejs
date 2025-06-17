@@ -62,26 +62,18 @@
           <h5>Submission Content</h5>
           <div class="card mb-4">
             <div class="card-body">
-              <% if (submission.responses && typeof submission.responses === 'object' && Object.keys(submission.responses).length > 0) { %>
+              <% if (submission.responses && ((typeof submission.responses === 'object' && !Array.isArray(submission.responses) && Object.keys(submission.responses).length > 0) || (Array.isArray(submission.responses) && submission.responses.length > 0))) { %>
                 <% 
                   // Parse questions if they exist
-                  let questions = {};
+                  let questions = [];
                   if (submission.questions && typeof submission.questions === 'string') {
                     try {
                       questions = JSON.parse(submission.questions);
                     } catch (e) {
-                      questions = {};
+                      questions = [];
                     }
                   } else if (submission.questions && typeof submission.questions === 'object') {
-                    questions = submission.questions;
-                  }
-                  
-                  // Map question IDs to their text for better display
-                  const questionMap = {};
-                  if (Array.isArray(questions)) {
-                    questions.forEach(q => {
-                      questionMap[q.id] = q.text || q.label || q.question;
-                    });
+                    questions = Array.isArray(submission.questions) ? submission.questions : [];
                   }
                 %>
                 
@@ -94,32 +86,70 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <% Object.entries(submission.responses).forEach(([key, value]) => { %>
-                        <tr>
-                          <td>
-                            <% if (questionMap[key]) { %>
-                              <%= questionMap[key] %>
-                            <% } else if (questions[key] && questions[key].label) { %>
-                              <%= questions[key].label %>
-                            <% } else { %>
-                              <%= key %>
-                            <% } %>
-                          </td>
-                          <td>
-                            <% if (Array.isArray(value)) { %>
-                              <ul class="mb-0">
-                                <% value.forEach(item => { %>
-                                  <li><%= item %></li>
-                                <% }); %>
-                              </ul>
-                            <% } else if (typeof value === 'object' && value !== null) { %>
-                              <pre><%= JSON.stringify(value, null, 2) %></pre>
-                            <% } else { %>
-                              <%= value %>
-                            <% } %>
-                          </td>
-                        </tr>
-                      <% }); %>
+                      <% if (Array.isArray(submission.responses)) { %>
+                        <% // Handle array-based responses (matched by index with questions) %>
+                        <% submission.responses.forEach((response, index) => { %>
+                          <tr>
+                            <td>
+                              <% if (questions[index] && questions[index].text) { %>
+                                <%= questions[index].text %>
+                              <% } else { %>
+                                Question <%= index + 1 %>
+                              <% } %>
+                            </td>
+                            <td>
+                              <% if (Array.isArray(response)) { %>
+                                <ul class="mb-0">
+                                  <% response.forEach(item => { %>
+                                    <li><%= item %></li>
+                                  <% }); %>
+                                </ul>
+                              <% } else if (typeof response === 'object' && response !== null) { %>
+                                <pre><%= JSON.stringify(response, null, 2) %></pre>
+                              <% } else { %>
+                                <%= response %>
+                              <% } %>
+                            </td>
+                          </tr>
+                        <% }); %>
+                      <% } else { %>
+                        <% // Handle object-based responses (original logic for key-value pairs) %>
+                        <% 
+                          // Map question IDs to their text for better display
+                          const questionMap = {};
+                          if (Array.isArray(questions)) {
+                            questions.forEach(q => {
+                              questionMap[q.id] = q.text || q.label || q.question;
+                            });
+                          }
+                        %>
+                        <% Object.entries(submission.responses).forEach(([key, value]) => { %>
+                          <tr>
+                            <td>
+                              <% if (questionMap[key]) { %>
+                                <%= questionMap[key] %>
+                              <% } else if (questions[key] && questions[key].label) { %>
+                                <%= questions[key].label %>
+                              <% } else { %>
+                                <%= key %>
+                              <% } %>
+                            </td>
+                            <td>
+                              <% if (Array.isArray(value)) { %>
+                                <ul class="mb-0">
+                                  <% value.forEach(item => { %>
+                                    <li><%= item %></li>
+                                  <% }); %>
+                                </ul>
+                              <% } else if (typeof value === 'object' && value !== null) { %>
+                                <pre><%= JSON.stringify(value, null, 2) %></pre>
+                              <% } else { %>
+                                <%= value %>
+                              <% } %>
+                            </td>
+                          </tr>
+                        <% }); %>
+                      <% } %>
                     </tbody>
                   </table>
                 </div>
