@@ -204,7 +204,7 @@ const dashboard = async (req, res) => {
     
     // Get recent emails
     let recentEmails = [];
-    
+
     try {
       if (typeof EmailLog !== 'undefined' && EmailLog.getRecentWithDetails) {
         recentEmails = await EmailLog.getRecentWithDetails(4);
@@ -212,7 +212,18 @@ const dashboard = async (req, res) => {
     } catch (emailsError) {
       console.error('Error fetching recent emails:', emailsError);
     }
-    
+
+    // Get recent submissions
+    let recentSubmissions = [];
+
+    try {
+      if (typeof Submission !== 'undefined' && Submission.getRecent) {
+        recentSubmissions = await Submission.getRecent(5);
+      }
+    } catch (submissionsError) {
+      console.error('Error fetching recent submissions:', submissionsError);
+    }
+
     // Get recent activity
     let recentActivity = [];
     
@@ -230,6 +241,7 @@ const dashboard = async (req, res) => {
       admin,
       stats,
       recentEmails,
+      recentSubmissions,
       recentActivity,
       success,
       error,
