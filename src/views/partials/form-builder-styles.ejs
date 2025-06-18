@@ -1,0 +1,130 @@
+<style>
+  /* Form styling */
+  .question-item {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+  
+  .question-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .question-item .card-header {
+    background-color: #f8f9fa;
+  }
+  
+  /* Placeholder styling */
+  .add-question-between {
+    position: relative;
+    height: 40px;
+    margin: 16px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .add-between-hint {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+  }
+  
+  .add-question-between:hover .add-between-hint,
+  .add-question-between:focus-within .add-between-hint {
+    display: block;
+  }
+  
+  .add-question-between:hover::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #f0f0f0;
+    z-index: 1;
+  }
+  
+  .add-between-btn {
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Add question placeholder */
+  .add-question-placeholder {
+    min-height: 100px;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+  }
+  
+  .add-question-placeholder:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+  }
+  
+  /* Question type modal styling */
+  .question-type-option {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    text-align: center;
+  }
+  
+  .question-type-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: #007bff;
+  }
+  
+  .question-type-option .icon-box {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .question-type-option .icon-box i {
+    font-size: 1.25rem;
+  }
+
+  /* Ensure all card titles in the question type modal are centered */
+  .question-type-option .card-title {
+    text-align: center !important;
+    font-weight: 600;
+    width: 100%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .question-type-option .card-text {
+    text-align: center !important;
+    width: 100%;
+    display: block;
+  }
+
+  .question-type-option .card-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Background colors for various question types */
+  .bg-light-primary { background-color: rgba(0, 123, 255, 0.1); }
+  .bg-light-secondary { background-color: rgba(108, 117, 125, 0.1); }
+  .bg-light-success { background-color: rgba(40, 167, 69, 0.1); }
+  .bg-light-danger { background-color: rgba(220, 53, 69, 0.1); }
+  .bg-light-warning { background-color: rgba(255, 193, 7, 0.1); }
+  .bg-light-info { background-color: rgba(23, 162, 184, 0.1); }
+</style> 
