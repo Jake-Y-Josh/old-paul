@@ -67,8 +67,8 @@ router.get('/forms/:id/submissions', isAuthenticated, formController.viewSubmiss
 
 // Client management
 router.get('/clients', isAuthenticated, clientController.listClients);
-router.get('/clients/upload', isAuthenticated, clientController.csvUploadPage);
-router.post('/clients/upload', isAuthenticated, upload.single('file'), clientController.uploadCsv);
+router.get('/clients/upload', isAuthenticated, clientController.showUploadForm);
+router.post('/clients/upload', isAuthenticated, upload.single('file'), clientController.uploadClients);
 router.post('/clients/create', isAuthenticated, clientController.createClient);
 router.put('/clients/:id', isAuthenticated, clientController.updateClient);
 router.delete('/clients/:id', isAuthenticated, clientController.deleteClient);
