@@ -2,8 +2,11 @@
   pageTitle: 'Edit Feedback Form',
   pageDescription: 'Update your feedback form settings and questions',
   breadcrumbs: [
-    { label: 'Forms', href: '/admin/forms' },
+    { label: 'Forms', url: '/admin/forms' },
     { label: 'Edit Form' }
+  ],
+  actionButtons: [
+    { type: 'link', url: '/admin/forms', icon: 'fas fa-arrow-left', label: 'Back to Forms', className: 'btn-outline-secondary' }
   ]
 }) %>
 
@@ -695,4 +698,5 @@
       }
     });
   });
-</script> 
+</script>
+<%- include('../../partials/form-builder-styles') %>
