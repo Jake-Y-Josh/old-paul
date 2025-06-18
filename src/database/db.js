@@ -1126,6 +1126,33 @@ const createMinimalSchema = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Create clients table for client management features
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        extra_data TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create forms table used by surveys
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS forms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT,
+        questions TEXT,
+        created_by INTEGER,
+        is_multi_step INTEGER DEFAULT 0,
+        steps TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     
     console.log('Minimal schema created successfully for sandbox environment');
     return true;
