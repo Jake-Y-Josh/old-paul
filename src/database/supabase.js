@@ -9,12 +9,18 @@ const { createClient } = require('@supabase/supabase-js');
 
 // Supabase configuration - read from environment or use hardcoded fallback
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hsacflpklcasjgffgzwd.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzYWNmbHBrbGNhc2pnZmZnendkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2ODEyMjgsImV4cCI6MjA1NzI1NzIyOH0.jyZb70tFxskfVI_VOs_DJU6NRXe6jVZE_qCT1t09ExU';
+const SUPABASE_KEY =
+  process.env.SUPABASE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzYWNmbHBrbGNhc2pnZmZnendkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2ODEyMjgsImV4cCI6MjA1NzI1NzIyOH0.jyZb70tFxskfVI_VOs_DJU6NRXe6jVZE_qCT1t09ExU';
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 console.log('Supabase client initialized');
+console.log('  URL:', SUPABASE_URL);
+console.log('  Key prefix:', SUPABASE_KEY ? SUPABASE_KEY.substring(0, 6) + '...' : 'Not set');
 
 // Helper function to execute Supabase queries
 const query = async (table, action, options = {}) => {

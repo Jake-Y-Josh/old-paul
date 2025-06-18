@@ -42,7 +42,12 @@ This application provides a comprehensive system for managing client feedback:
    # DB_PASSWORD=your_db_password
    # DB_NAME=your_db_name
    # DB_PORT=your_db_port
-   # DB_SSL=true
+  # DB_SSL=true
+
+  # Supabase API (if using the Supabase client)
+  SUPABASE_URL=https://your-project.supabase.co
+  # Provide either SUPABASE_KEY or SUPABASE_SERVICE_ROLE_KEY
+  SUPABASE_KEY=your_supabase_service_role_key
 
    # Security
    SESSION_SECRET=your_super_secret_session_key
