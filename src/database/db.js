@@ -30,18 +30,15 @@ const isSandboxEnvironment = () => {
       'db.hsacflpklcasjgffgzwd.supabase.co',
       'aws-0-eu-west-2.pooler.supabase.com'
     ];
-    
-    // If we're in a sandbox that doesn't allow external connections,
-    // assume we're in a sandbox environment
+
+    // Attempt to ping each host. If any fail, assume sandbox mode
+    const { execSync } = require('child_process');
     for (const host of hosts) {
-      if (process.env.TEST_CONNECTIVITY) {
-        const { execSync } = require('child_process');
-        try {
-          execSync(`ping -c 1 ${host}`, { stdio: 'ignore' });
-        } catch (e) {
-          console.log(`Cannot reach ${host} - assuming sandbox environment`);
-          return true;
-        }
+      try {
+        execSync(`ping -c 1 -W 1 ${host}`, { stdio: 'ignore' });
+      } catch (e) {
+        console.log(`Cannot reach ${host} - assuming sandbox environment`);
+        return true;
       }
     }
   } catch (error) {
