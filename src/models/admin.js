@@ -158,6 +158,24 @@ class Admin {
     // Return null if no admin found, or the first admin if found
     return data && data.length > 0 ? data[0] : null;
   }
+
+  // Update last login time
+  static async updateLastLogin(adminId) {
+    const { data, error } = await supabase
+      .from('admins')
+      .update({
+        last_login: new Date()
+      })
+      .eq('id', adminId)
+      .select();
+    
+    if (error) {
+      console.error('Error updating last login:', error);
+      throw error;
+    }
+    
+    return data && data.length > 0 ? data[0] : null;
+  }
 }
 
 module.exports = Admin; 

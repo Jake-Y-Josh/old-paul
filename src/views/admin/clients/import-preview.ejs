@@ -8,38 +8,43 @@
   ]
 }) %>
 
-<div class="container-fluid px-4">
+<div class="container-fluid px-4 py-4">
+
   <div class="row">
     <div class="col-12">
       <!-- Summary Card -->
-      <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-          <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Import Summary</h5>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom py-3">
+          <h5 class="mb-0 fw-semibold text-dark"><i class="fas fa-chart-bar me-2"></i>Import Summary</h5>
         </div>
         <div class="card-body">
           <div class="row text-center">
-            <div class="col-md-3">
-              <div class="metric-box">
-                <h3 class="text-success"><%= preview.newClients.length %></h3>
-                <p class="text-muted mb-0">New Clients</p>
+            <div class="col-md-3 mb-3">
+              <div class="metric-box bg-light rounded p-4 h-100 text-center border">
+                <i class="fas fa-user-plus text-dark mb-2" style="font-size: 2rem;"></i>
+                <h3 class="text-dark mb-1"><%= preview.newClients.length %></h3>
+                <p class="text-muted mb-0 small">New Clients</p>
               </div>
             </div>
-            <div class="col-md-3">
-              <div class="metric-box">
-                <h3 class="text-warning"><%= preview.existingClients.length %></h3>
-                <p class="text-muted mb-0">Existing Clients</p>
+            <div class="col-md-3 mb-3">
+              <div class="metric-box bg-light rounded p-4 h-100 text-center border">
+                <i class="fas fa-user-edit text-dark mb-2" style="font-size: 2rem;"></i>
+                <h3 class="text-dark mb-1"><%= preview.existingClients.length %></h3>
+                <p class="text-muted mb-0 small">Existing Clients</p>
               </div>
             </div>
-            <div class="col-md-3">
-              <div class="metric-box">
-                <h3 class="text-danger"><%= preview.duplicatesInFile.length %></h3>
-                <p class="text-muted mb-0">Duplicates in File</p>
+            <div class="col-md-3 mb-3">
+              <div class="metric-box bg-light rounded p-4 h-100 text-center border">
+                <i class="fas fa-copy text-dark mb-2" style="font-size: 2rem;"></i>
+                <h3 class="text-dark mb-1"><%= preview.duplicatesInFile.length %></h3>
+                <p class="text-muted mb-0 small">Duplicates in File</p>
               </div>
             </div>
-            <div class="col-md-3">
-              <div class="metric-box">
-                <h3 class="text-info"><%= preview.totalCount %></h3>
-                <p class="text-muted mb-0">Total Records</p>
+            <div class="col-md-3 mb-3">
+              <div class="metric-box bg-light rounded p-4 h-100 text-center border">
+                <i class="fas fa-list-ol text-dark mb-2" style="font-size: 2rem;"></i>
+                <h3 class="text-dark mb-1"><%= preview.totalCount %></h3>
+                <p class="text-muted mb-0 small">Total Records</p>
               </div>
             </div>
           </div>
@@ -67,32 +72,39 @@
 
       <!-- New Clients -->
       <% if (preview.newClients.length > 0) { %>
-        <div class="card mb-4">
-          <div class="card-header bg-success text-white">
-            <h5 class="mb-0">
-              <i class="fas fa-user-plus me-2"></i>New Clients to Import (<%= preview.newClients.length %>)
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-light border-bottom py-3">
+            <h5 class="mb-0 fw-semibold text-dark">
+              <i class="fas fa-user-plus me-2"></i>New Clients to Import 
+              <span class="badge bg-secondary text-white ms-2"><%= preview.newClients.length %></span>
             </h5>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
-                <thead>
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
                   <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Client ID</th>
-                    <th>Additional Data</th>
+                    <th class="fw-semibold">Name</th>
+                    <th class="fw-semibold">Email</th>
+                    <th class="fw-semibold">Client Reference</th>
+                    <th class="fw-semibold">Additional Data</th>
                   </tr>
                 </thead>
                 <tbody>
                   <% preview.newClients.slice(0, 10).forEach(client => { %>
                     <tr>
-                      <td><%= client.name %></td>
-                      <td><%= client.email %></td>
-                      <td><%= client.enablecrm_id || '-' %></td>
-                      <td>
+                      <td class="align-middle"><strong><%= client.name %></strong></td>
+                      <td class="align-middle"><%= client.email %></td>
+                      <td class="align-middle">
+                        <% if (client.enablecrm_id) { %>
+                          <span class="badge bg-secondary"><%= client.enablecrm_id %></span>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td class="align-middle">
                         <% if (client.extra_data && Object.keys(client.extra_data).length > 0) { %>
-                          <small class="text-muted"><%= Object.keys(client.extra_data).length %> fields</small>
+                          <small class="text-muted"><i class="fas fa-database me-1"></i><%= Object.keys(client.extra_data).length %> fields</small>
                         <% } else { %>
                           <small class="text-muted">-</small>
                         <% } %>
@@ -115,49 +127,56 @@
 
       <!-- Existing Clients -->
       <% if (preview.existingClients.length > 0) { %>
-        <div class="card mb-4">
-          <div class="card-header bg-warning">
-            <h5 class="mb-0">
-              <i class="fas fa-user-check me-2"></i>Existing Clients (<%= preview.existingClients.length %>)
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-light border-bottom py-3">
+            <h5 class="mb-0 fw-semibold text-dark">
+              <i class="fas fa-user-check me-2"></i>Existing Clients
+              <span class="badge bg-secondary text-white ms-2"><%= preview.existingClients.length %></span>
               <% if (preview.updateExisting) { %>
-                <span class="badge bg-dark ms-2">Will be updated</span>
+                <span class="badge bg-primary text-white ms-2 float-end">Will be updated</span>
               <% } else { %>
-                <span class="badge bg-secondary ms-2">Will be skipped</span>
+                <span class="badge bg-secondary text-white ms-2 float-end">Will be skipped</span>
               <% } %>
             </h5>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
-                <thead>
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
                   <tr>
-                    <th>Current Name</th>
-                    <th>New Name</th>
-                    <th>Email</th>
-                    <th>Current ID</th>
-                    <th>New ID</th>
+                    <th class="fw-semibold">Current Name</th>
+                    <th class="fw-semibold">New Name</th>
+                    <th class="fw-semibold">Email</th>
+                    <th class="fw-semibold">Current Reference</th>
+                    <th class="fw-semibold">New Reference</th>
                   </tr>
                 </thead>
                 <tbody>
                   <% preview.existingClients.slice(0, 10).forEach(client => { %>
                     <tr>
-                      <td>
-                        <%= client.existing.name %>
+                      <td class="align-middle">
+                        <strong><%= client.existing.name %></strong>
                       </td>
-                      <td>
+                      <td class="align-middle">
                         <% if (client.name !== client.existing.name) { %>
-                          <span class="text-primary"><%= client.name %></span>
+                          <span class="badge bg-dark text-white"><%= client.name %></span>
                         <% } else { %>
-                          <span class="text-muted">No change</span>
+                          <span class="text-muted"><i class="fas fa-minus"></i></span>
                         <% } %>
                       </td>
-                      <td><%= client.email %></td>
-                      <td><%= client.existing.enablecrm_id || '-' %></td>
-                      <td>
-                        <% if (client.enablecrm_id && client.enablecrm_id !== client.existing.enablecrm_id) { %>
-                          <span class="text-primary"><%= client.enablecrm_id %></span>
+                      <td class="align-middle"><%= client.email %></td>
+                      <td class="align-middle">
+                        <% if (client.existing.enablecrm_id) { %>
+                          <span class="badge bg-secondary"><%= client.existing.enablecrm_id %></span>
                         <% } else { %>
-                          <span class="text-muted">No change</span>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td class="align-middle">
+                        <% if (client.enablecrm_id && client.enablecrm_id !== client.existing.enablecrm_id) { %>
+                          <span class="badge bg-dark text-white"><%= client.enablecrm_id %></span>
+                        <% } else { %>
+                          <span class="text-muted"><i class="fas fa-minus"></i></span>
                         <% } %>
                       </td>
                     </tr>
@@ -178,29 +197,36 @@
 
       <!-- Duplicates in File -->
       <% if (preview.duplicatesInFile.length > 0) { %>
-        <div class="card mb-4">
-          <div class="card-header bg-danger text-white">
-            <h5 class="mb-0">
-              <i class="fas fa-exclamation-circle me-2"></i>Duplicates in File (<%= preview.duplicatesInFile.length %>)
-              <span class="badge bg-dark ms-2">Will be ignored</span>
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-light border-bottom py-3">
+            <h5 class="mb-0 fw-semibold text-dark">
+              <i class="fas fa-exclamation-circle me-2"></i>Duplicates in File
+              <span class="badge bg-secondary text-white ms-2"><%= preview.duplicatesInFile.length %></span>
+              <span class="badge bg-secondary text-white ms-2 float-end">Will be ignored</span>
             </h5>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
-                <thead>
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
                   <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Client ID</th>
+                    <th class="fw-semibold">Name</th>
+                    <th class="fw-semibold">Email</th>
+                    <th class="fw-semibold">Client Reference</th>
                   </tr>
                 </thead>
                 <tbody>
                   <% preview.duplicatesInFile.forEach(client => { %>
                     <tr>
-                      <td><%= client.name %></td>
-                      <td><%= client.email %></td>
-                      <td><%= client.enablecrm_id || '-' %></td>
+                      <td class="align-middle"><strong><%= client.name %></strong></td>
+                      <td class="align-middle"><%= client.email %></td>
+                      <td class="align-middle">
+                        <% if (client.enablecrm_id) { %>
+                          <span class="badge bg-secondary"><%= client.enablecrm_id %></span>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
                     </tr>
                   <% }); %>
                 </tbody>
@@ -212,31 +238,41 @@
 
       <!-- Clients to Remove -->
       <% if (preview.removeNotInSpreadsheet && preview.clientsToRemove && preview.clientsToRemove.length > 0) { %>
-        <div class="card mb-4">
-          <div class="card-header bg-danger text-white">
-            <h5 class="mb-0">
-              <i class="fas fa-trash-alt me-2"></i>Clients to Remove (<%= preview.clientsToRemove.length %>)
-              <span class="badge bg-dark ms-2">Will be deleted</span>
+        <div class="card shadow-sm mb-4 border-danger">
+          <div class="card-header bg-light border-bottom border-danger py-3">
+            <h5 class="mb-0 fw-semibold text-danger">
+              <i class="fas fa-trash-alt me-2"></i>Clients to Remove
+              <span class="badge bg-danger text-white ms-2"><%= preview.clientsToRemove.length %></span>
+              <span class="badge bg-danger text-white ms-2 float-end">Will be deleted</span>
             </h5>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
-                <thead>
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
                   <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Client ID</th>
-                    <th>Created</th>
+                    <th class="fw-semibold">Name</th>
+                    <th class="fw-semibold">Email</th>
+                    <th class="fw-semibold">Client Reference</th>
+                    <th class="fw-semibold">Created</th>
                   </tr>
                 </thead>
                 <tbody>
                   <% preview.clientsToRemove.slice(0, 10).forEach(client => { %>
                     <tr>
-                      <td><%= client.name %></td>
-                      <td><%= client.email %></td>
-                      <td><%= client.enablecrm_id || client.extra_data?.clientId || '-' %></td>
-                      <td><%= new Date(client.created_at).toLocaleDateString() %></td>
+                      <td class="align-middle"><strong><%= client.name %></strong></td>
+                      <td class="align-middle"><%= client.email %></td>
+                      <td class="align-middle">
+                        <% const ref = client.enablecrm_id || client.extra_data?.clientId; %>
+                        <% if (ref) { %>
+                          <span class="badge bg-danger"><%= ref %></span>
+                        <% } else { %>
+                          <span class="text-muted">-</span>
+                        <% } %>
+                      </td>
+                      <td class="align-middle">
+                        <small class="text-muted"><%= new Date(client.created_at).toLocaleDateString() %></small>
+                      </td>
                     </tr>
                   <% }); %>
                   <% if (preview.clientsToRemove.length > 10) { %>
@@ -254,20 +290,28 @@
       <% } %>
 
       <!-- Action Buttons -->
-      <div class="card">
-        <div class="card-body">
-          <form method="POST" action="/admin/clients/import-confirm" class="d-flex justify-content-between">
-            <button type="submit" name="action" value="cancel" class="btn btn-outline-secondary">
+      <div class="card shadow-sm border-0">
+        <div class="card-body py-4">
+          <form method="POST" action="/admin/clients/import-confirm" class="d-flex justify-content-between align-items-center">
+            <button type="submit" name="action" value="cancel" class="btn btn-lg btn-outline-secondary">
               <i class="fas fa-times me-2"></i>Cancel Import
             </button>
-            <button type="submit" name="action" value="confirm" class="btn btn-primary">
+            <div class="text-center">
+              <p class="mb-0 text-muted">Ready to import?</p>
+              <small class="text-muted">
+                <% if (preview.updateExisting) { %>
+                  <%= preview.newClients.length %> new, <%= preview.existingClients.length %> updates
+                <% } else { %>
+                  <%= preview.newClients.length %> new clients only
+                <% } %>
+                <% if (preview.removeNotInSpreadsheet && preview.clientsToRemove && preview.clientsToRemove.length > 0) { %>
+                  , <%= preview.clientsToRemove.length %> removals
+                <% } %>
+              </small>
+            </div>
+            <button type="submit" name="action" value="confirm" class="btn btn-lg btn-primary">
               <i class="fas fa-check me-2"></i>
-              Confirm Import 
-              <% if (preview.updateExisting) { %>
-                (<%= preview.newClients.length + preview.existingClients.length %> clients)
-              <% } else { %>
-                (<%= preview.newClients.length %> new clients)
-              <% } %>
+              Confirm Import
             </button>
           </form>
         </div>
@@ -276,18 +320,58 @@
   </div>
 </div>
 
+
 <style>
   .metric-box {
-    padding: 20px;
-    border-radius: 8px;
-    background-color: #f8f9fa;
+    transition: all 0.3s ease;
   }
-  .metric-box h3 {
-    margin-bottom: 5px;
-    font-weight: 600;
+  .metric-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
   .table-responsive {
     max-height: 400px;
     overflow-y: auto;
+  }
+  .table-responsive::-webkit-scrollbar {
+    width: 8px;
+  }
+  .table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  .table tbody tr {
+    transition: background-color 0.2s ease;
+  }
+  .table tbody tr:hover {
+    background-color: rgba(0,0,0,0.02);
+  }
+  .badge {
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+  }
+  .card {
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .card-header {
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .breadcrumb {
+    background: none;
+    padding: 0;
+    margin: 0;
+  }
+  .breadcrumb-item + .breadcrumb-item::before {
+    color: #6c757d;
+  }
+  .btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
   }
 </style>

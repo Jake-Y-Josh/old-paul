@@ -1,3 +1,5 @@
+<%- include('../../partials/flash') %>
+
 <div class="row mb-4">
   <div class="col-md-8">
     <h1>Import Clients</h1>
@@ -22,7 +24,7 @@
           <ul>
             <li><strong>name</strong> - Client's full name</li>
             <li><strong>email</strong> - Client's email address</li>
-            <li><strong>Client ID</strong> (optional) - Unique identifier from EnableCRM</li>
+            <li><strong>Client Reference</strong> (optional) - Unique identifier for the client</li>
           </ul>
           <p class="mb-0">Additional columns will be stored as extra data for the client.</p>
         </div>
@@ -35,15 +37,15 @@
           </div>
           
           <div class="mb-3">
-            <label for="clientIdField" class="form-label">Client ID Column Name</label>
-            <input type="text" class="form-control" id="clientIdField" name="clientIdField" value="Client ID">
-            <div class="form-text">Specify the column name that contains the client ID in your Excel file</div>
+            <label for="clientIdField" class="form-label">Client Reference Column Name</label>
+            <input type="text" class="form-control" id="clientIdField" name="clientIdField" value="Client Reference">
+            <div class="form-text">Specify the column name that contains the client reference in your spreadsheet</div>
           </div>
           
           <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" id="updateExisting" name="updateExisting" checked>
             <label class="form-check-label" for="updateExisting">
-              Update existing clients (by Client ID or email address)
+              Update existing clients (by Client Reference)
             </label>
           </div>
           
@@ -80,14 +82,14 @@
   <div class="col-md-4">
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title">About EnableCRM Import</h5>
-        <p>When importing clients from EnableCRM:</p>
+        <h5 class="card-title">About Client Import</h5>
+        <p>When importing clients:</p>
         
         <div class="mb-3">
           <ul class="small">
-            <li>The system will identify clients by their <strong>Client ID</strong></li>
-            <li>Existing clients with matching ID will be <strong>updated</strong></li>
-            <li>Multiple entries with the same ID in your file will be deduplicated</li>
+            <li>The system will identify clients by their <strong>Client Reference</strong></li>
+            <li>Existing clients with matching reference will be <strong>updated</strong></li>
+            <li>Multiple entries with the same reference in your file will be deduplicated</li>
             <li>All other client data will be properly merged</li>
           </ul>
         </div>
@@ -97,7 +99,7 @@
           <ul class="small">
             <li>Column headers must be included in the first row</li>
             <li>Email addresses must be valid and unique</li>
-            <li>Client IDs must be unique</li>
+            <li>Client References must be unique</li>
           </ul>
         </div>
       </div>

@@ -201,6 +201,29 @@ class Client {
   // Delete client
   static async delete(id) {
     try {
+      // First, delete all related records to avoid foreign key constraints
+      
+      // Delete email logs
+      const { error: emailLogsError } = await supabase
+        .from('email_logs')
+        .delete()
+        .eq('client_id', id);
+      
+      if (emailLogsError) {
+        logger.error('Error deleting email logs:', emailLogsError);
+      }
+      
+      // Delete form submissions
+      const { error: submissionsError } = await supabase
+        .from('form_submissions')
+        .delete()
+        .eq('client_id', id);
+      
+      if (submissionsError) {
+        logger.error('Error deleting form submissions:', submissionsError);
+      }
+      
+      // Now delete the client
       const { data, error } = await supabase
         .from('clients')
         .delete()
@@ -216,6 +239,7 @@ class Client {
         throw error;
       }
       
+      logger.info(`Successfully deleted client ${id} and all related records`);
       return true;
     } catch (error) {
       logger.error('Error in Client.delete:', error);
@@ -259,25 +283,37 @@ class Client {
         const email = clientData.email.toLowerCase();
         let existingClient = null;
         
-        // Check if client with this client ID already exists (if client ID is provided)
-        if (clientData.extraData && clientData.extraData.clientId) {
+        // Check if client with this client reference already exists
+        if (clientData.enablecrm_id) {
+          existingClient = await this.findByClientId(clientData.enablecrm_id);
+        } else if (clientData.extraData && clientData.extraData.clientId) {
           existingClient = await this.findByClientId(clientData.extraData.clientId);
         }
         
-        // If not found by client ID, try by email
-        if (!existingClient) {
-          existingClient = await this.findByEmail(email);
-        }
+        // Note: We no longer fall back to email matching
         
         if (existingClient) {
           // Update existing client
-          const updatedClient = await this.update(existingClient.id, {
+          const updateData = {
             name: clientData.name,
-            extraData: { 
+            email: email
+          };
+          
+          // Preserve client reference if provided
+          if (clientData.enablecrm_id) {
+            updateData.extraData = { 
+              ...existingClient.extra_data,
+              ...clientData.extraData,
+              clientId: clientData.enablecrm_id
+            };
+          } else {
+            updateData.extraData = { 
               ...existingClient.extra_data,
               ...clientData.extraData 
-            }
-          });
+            };
+          }
+          
+          const updatedClient = await this.update(existingClient.id, updateData);
           
           if (updatedClient) {
             results.push({
@@ -288,20 +324,55 @@ class Client {
             });
           }
         } else {
+          // For new clients, check if email already exists
+          const existingByEmail = await this.findByEmail(email);
+          
+          if (existingByEmail) {
+            logger.warn(`Cannot create client ${clientData.name} - email ${email} already exists for ${existingByEmail.name}`);
+            results.push({
+              name: clientData.name,
+              email: email,
+              action: 'skipped',
+              reason: `Email already exists for client: ${existingByEmail.name}`
+            });
+            continue;
+          }
+          
           // Create new client
-          const newClient = await this.create({
+          const createData = {
             name: clientData.name,
             email: email,
             extraData: clientData.extraData || {}
-          });
+          };
           
-          if (newClient) {
-            results.push({
-              id: newClient.id,
-              name: newClient.name,
-              email: newClient.email,
-              action: 'created'
-            });
+          // Store client reference in extra_data if provided
+          if (clientData.enablecrm_id) {
+            createData.extraData.clientId = clientData.enablecrm_id;
+          }
+          
+          try {
+            const newClient = await this.create(createData);
+            
+            if (newClient) {
+              results.push({
+                id: newClient.id,
+                name: newClient.name,
+                email: newClient.email,
+                action: 'created'
+              });
+            }
+          } catch (createError) {
+            if (createError.code === '23505') { // Unique constraint violation
+              logger.error(`Duplicate email error for ${clientData.name} with email ${email}`);
+              results.push({
+                name: clientData.name,
+                email: email,
+                action: 'skipped',
+                reason: 'Duplicate email'
+              });
+            } else {
+              throw createError;
+            }
           }
         }
       }
