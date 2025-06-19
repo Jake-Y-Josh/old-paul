@@ -4,39 +4,8 @@ const { validationResult } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
-const multer = require('multer');
 const logger = require('../../utils/logger');
 const { processClientExcel, validateExcelFormat } = require('../../utils/excelProcessor');
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'clients-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  fileFilter: function (req, file, cb) {
-    // Accept CSV and Excel files
-    if (file.mimetype === 'text/csv' || 
-        file.originalname.endsWith('.csv') ||
-        file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-        file.originalname.endsWith('.xlsx')) {
-      cb(null, true);
-    } else {
-      return cb(new Error('Only CSV and Excel (.xlsx) files are allowed'), false);
-    }
-    cb(null, true);
-  },
-  limits: {
-    fileSize: 1024 * 1024 * 10 // 10MB max file size
-  }
-}).single('file');
 
 // List all clients
 exports.listClients = async (req, res) => {
@@ -183,86 +152,109 @@ exports.updateClient = async (req, res) => {
 
 // Upload and process client file (CSV or Excel)
 exports.uploadClients = async (req, res) => {
-  upload(req, res, async function (err) {
-    if (err) {
-      req.flash('error', err.message || 'Error uploading file');
-      return res.redirect('/admin/clients/upload');
-    }
-    
+  try {
     if (!req.file) {
       req.flash('error', 'Please select a file to upload');
       return res.redirect('/admin/clients/upload');
     }
     
-    try {
-      const filePath = req.file.path;
-      const fileExtension = path.extname(req.file.originalname).toLowerCase();
-      const clientIdField = req.body.clientIdField || 'Client ID';
-      const updateExisting = req.body.updateExisting === 'on';
+    const filePath = req.file.path;
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    const clientIdField = req.body.clientIdField || 'Client ID';
+    const updateExisting = req.body.updateExisting === 'on';
+    
+    let clients = [];
+    let isValid = false;
+    
+    // Process file based on extension
+    if (fileExtension === '.xlsx') {
+      // Validate Excel format
+      isValid = await validateExcelFormat(filePath);
       
-      let clients = [];
-      let isValid = false;
-      
-      // Process file based on extension
-      if (fileExtension === '.xlsx') {
-        // Validate Excel format
-        isValid = await validateExcelFormat(filePath);
-        
-        if (!isValid) {
-          // Delete the uploaded file
-          fs.unlinkSync(filePath);
-          
-          req.flash('error', 'Invalid Excel format. File must include name and email columns (e.g., "name", "Client Forename/Surname", "email", "Client Email", etc.).');
-          return res.redirect('/admin/clients/upload');
-        }
-        
-        // Process the Excel file
-        clients = await processClientExcel(filePath, clientIdField);
-      } else if (fileExtension === '.csv') {
-        // Use existing CSV processing
-        // This code would be from the previous CSV processing implementation
-        // ... existing CSV processing code ...
-      } else {
-        // Unsupported file type
+      if (!isValid) {
+        // Delete the uploaded file
         fs.unlinkSync(filePath);
-        req.flash('error', 'Unsupported file format. Please upload a CSV or Excel (.xlsx) file.');
+        
+        req.flash('error', 'Invalid Excel format. File must include name and email columns (e.g., "name", "Client Forename/Surname", "email", "Client Email", etc.).');
         return res.redirect('/admin/clients/upload');
       }
       
-      // Delete the uploaded file
+      // Process the Excel file
+      clients = await processClientExcel(filePath, clientIdField);
+    } else if (fileExtension === '.csv') {
+      // Process CSV file
+      const results = [];
+      await new Promise((resolve, reject) => {
+        fs.createReadStream(filePath)
+          .pipe(csv())
+          .on('data', (row) => {
+            // Look for name and email in various possible column names
+            const name = row.name || row.Name || row['Client Name'] || row['Client Forename/Surname'] || '';
+            const email = row.email || row.Email || row['Client Email'] || '';
+            const clientId = row[clientIdField] || row.id || row.ID || null;
+            
+            if (name && email) {
+              const client = {
+                name: name.trim(),
+                email: email.trim().toLowerCase(),
+                enablecrm_id: clientId ? clientId.trim() : null,
+                extra_data: {}
+              };
+              
+              // Add all other fields to extra_data
+              Object.keys(row).forEach(key => {
+                if (!['name', 'Name', 'email', 'Email', 'Client Name', 'Client Email', 'Client Forename/Surname', clientIdField].includes(key)) {
+                  client.extra_data[key] = row[key];
+                }
+              });
+              
+              results.push(client);
+            }
+          })
+          .on('end', () => resolve())
+          .on('error', reject);
+      });
+      clients = results;
+    } else {
+      // Unsupported file type
       fs.unlinkSync(filePath);
-      
-      // Check if any clients were found
-      if (clients.length === 0) {
-        req.flash('error', 'No valid client records found in the file');
-        return res.redirect('/admin/clients/upload');
-      }
-      
-      // Insert or update the clients in the database
-      const results = await Client.bulkUpsert(clients);
-      
-      // Set success message
-      req.flash('success', `Successfully imported ${results.length} clients. ` +
-        `${results.filter(r => r.action === 'created').length} created, ` +
-        `${results.filter(r => r.action === 'updated').length} updated.`);
-      
-      res.redirect('/admin/clients');
-    } catch (error) {
-      logger.error('File upload error:', error);
-      
-      // Delete the uploaded file if it exists
-      if (req.file && req.file.path) {
-        try {
-          fs.unlinkSync(req.file.path);
-        } catch (unlinkError) {
-          logger.error('Error deleting uploaded file:', unlinkError);
-        }
-      }
-      
-      req.flash('error', `Failed to process file: ${error.message}`);
-      res.redirect('/admin/clients/upload');
+      req.flash('error', 'Unsupported file format. Please upload a CSV or Excel (.xlsx) file.');
+      return res.redirect('/admin/clients/upload');
     }
-  });
+    
+    // Delete the uploaded file
+    fs.unlinkSync(filePath);
+    
+    // Check if any clients were found
+    if (clients.length === 0) {
+      req.flash('error', 'No valid client records found in the file');
+      return res.redirect('/admin/clients/upload');
+    }
+    
+    // Insert or update the clients in the database
+    const results = await Client.bulkUpsert(clients);
+    
+    // Set success message
+    req.flash('success', `Successfully imported ${results.length} clients. ` +
+      `${results.filter(r => r.action === 'created').length} created, ` +
+      `${results.filter(r => r.action === 'updated').length} updated.`);
+    
+    res.redirect('/admin/clients');
+  } catch (error) {
+    logger.error('File upload error:', error);
+    
+    // Delete the uploaded file if it exists
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        logger.error('Error deleting uploaded file:', unlinkError);
+      }
+    }
+    
+    req.flash('error', `Failed to process file: ${error.message}`);
+    res.redirect('/admin/clients/upload');
+  }
 };
 
 // Delete a client

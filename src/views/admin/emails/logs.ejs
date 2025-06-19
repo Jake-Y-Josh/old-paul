@@ -33,9 +33,9 @@
             </thead>
             <tbody>
               <% logs.forEach(log => { 
-                // Skip logs without any email address
+                // Skip logs without any email address or submission notifications
                 const recipientEmail = log.to_email || log.client_email || log.recipient;
-                if (!recipientEmail) return;
+                if (!recipientEmail || log.type === 'submission_notification') return;
               %>
                 <tr>
                   <td>
