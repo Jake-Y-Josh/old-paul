@@ -4,7 +4,7 @@ const authRoutes = require('./authRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
 const formRoutes = require('./formRoutes');
 const clientRoutes = require('./clientRoutes');
-const authMiddleware = require('../../middleware/authMiddleware');
+const authMiddleware = require('../../middlewares/auth');
 
 // Auth routes (login, logout)
 router.use('/', authRoutes);
