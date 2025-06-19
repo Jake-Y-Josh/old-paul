@@ -39,7 +39,7 @@
                     <a href="/admin/submissions/<%= submission.id %>" class="btn btn-sm btn-primary">
                       <i class="fas fa-eye"></i> View
                     </a>
-                    <button class="btn btn-sm btn-danger delete-submission" data-id="<%= submission.id %>">
+                    <button class="btn btn-sm btn-danger delete-submission" data-id="<%= submission.id %>" onclick="showDeleteModal('<%= submission.id %>')">
                       <i class="fas fa-trash"></i> Delete
                     </button>
                   </td>
@@ -83,57 +83,149 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+        <button type="button" class="btn btn-danger" id="confirmDelete" onclick="console.log('Inline click detected'); executeDelete();">Delete</button>
       </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.3/js/dataTables.bootstrap5.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/dataTables.bootstrap5.min.css">
+
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize DataTable
-    $('#submissionsTable').DataTable({
-      paging: false,
-      searching: true,
-      ordering: true,
-      info: false
-    });
-    
-    // Handle delete button clicks
-    const deleteButtons = document.querySelectorAll('.delete-submission');
-    const confirmDeleteBtn = document.getElementById('confirmDelete');
-    let submissionToDelete = null;
-    
-    deleteButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        submissionToDelete = this.getAttribute('data-id');
-        const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-        modal.show();
-      });
-    });
-    
-    // Handle confirmation
-    confirmDeleteBtn.addEventListener('click', function() {
-      if (submissionToDelete) {
-        // Send delete request
-        fetch(`/admin/submissions/${submissionToDelete}/delete`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        })
-        .then(response => {
-          if (response.ok) {
-            window.location.reload();
-          } else {
-            alert('Failed to delete submission. Please try again.');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('An error occurred. Please try again.');
-        });
+let submissionToDelete = null;
+
+// Show delete confirmation modal
+function showDeleteModal(submissionId) {
+  console.log('showDeleteModal called with ID:', submissionId);
+  
+  if (!submissionId) {
+    alert('No submission ID provided');
+    return;
+  }
+  
+  submissionToDelete = submissionId;
+  console.log('Setting submissionToDelete to:', submissionToDelete);
+  
+  // Show the modal
+  const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+  modal.show();
+}
+
+// Test function
+function testFunction() {
+  console.log('Test function called!');
+  alert('Test function working!');
+}
+
+// Execute the delete when confirmed
+function executeDelete() {
+  console.log('executeDelete called for submission ID:', submissionToDelete);
+  
+  if (!submissionToDelete) {
+    console.error('No submission ID to delete');
+    alert('No submission ID to delete');
+    return;
+  }
+  
+  const confirmBtn = document.getElementById('confirmDelete');
+  
+  // Disable button and show loading state
+  confirmBtn.disabled = true;
+  confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+  
+  console.log('Making delete request to:', `/admin/submissions/${submissionToDelete}/delete`);
+  
+  // Use jQuery AJAX for better compatibility
+  $.ajax({
+    url: `/admin/submissions/${submissionToDelete}/delete`,
+    type: 'DELETE',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    success: function(response) {
+      console.log('Delete response:', response);
+      
+      if (response.success) {
+        // Hide the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
+        if (modal) {
+          modal.hide();
+        }
+        
+        // Show success message and reload
+        alert('Submission deleted successfully!');
+        window.location.reload();
+      } else {
+        alert('Error: ' + (response.message || 'Failed to delete submission'));
+        
+        // Re-enable button
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = 'Delete';
       }
-    });
+    },
+    error: function(xhr, status, error) {
+      console.error('Delete request failed:', {
+        status: xhr.status,
+        statusText: xhr.statusText,
+        responseText: xhr.responseText,
+        error: error
+      });
+      
+      let errorMessage = 'Failed to delete submission';
+      if (xhr.status === 401) {
+        errorMessage = 'Authentication required. Please log in again.';
+      } else if (xhr.status === 403) {
+        errorMessage = 'Access denied.';
+      } else if (xhr.status === 404) {
+        errorMessage = 'Submission not found.';
+      } else if (xhr.responseText) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          errorMessage = response.message || errorMessage;
+        } catch (e) {
+          errorMessage = `HTTP ${xhr.status}: ${xhr.statusText}`;
+        }
+      }
+      
+      alert(errorMessage);
+      
+      // Re-enable button
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = 'Delete';
+    }
   });
+}
+
+$(document).ready(function() {
+  console.log('Document ready, initializing submissions page...');
+  
+  // Initialize DataTable if table exists
+  if ($('#submissionsTable').length) {
+    console.log('Initializing DataTable...');
+    try {
+      $('#submissionsTable').DataTable({
+        paging: false,
+        searching: true,
+        ordering: true,
+        info: false
+      });
+    } catch (e) {
+      console.error('DataTable initialization failed:', e);
+    }
+  }
+  
+  // Debug: Check if button exists
+  console.log('confirmDelete button found:', document.getElementById('confirmDelete'));
+  
+  // Attach click handler to the confirm delete button
+  $('#confirmDelete').on('click', function(e) {
+    e.preventDefault();
+    console.log('jQuery click handler triggered!');
+    executeDelete();
+  });
+});
 </script> 
