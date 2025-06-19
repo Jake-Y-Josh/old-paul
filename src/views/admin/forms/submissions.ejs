@@ -57,10 +57,13 @@
               <% submissions.forEach(submission => { %>
                 <tr>
                   <td>
-                    <% if (submission.client) { %>
-                      <%= submission.client.name %>
+                    <% if (submission.client_name) { %>
+                      <%= submission.client_name %>
+                      <% if (submission.client_email) { %><br>
+                        <small class="text-muted"><%= submission.client_email %></small>
+                      <% } %>
                     <% } else { %>
-                      <span class="text-muted">Unknown Client</span>
+                      Anonymous
                     <% } %>
                   </td>
                   <td><%= new Date(submission.submitted_at).toLocaleString() %></td>

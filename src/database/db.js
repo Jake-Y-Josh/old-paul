@@ -230,7 +230,6 @@ const initializePool = async () => {
   try {
     // Import URL module for parsing connection strings
     const { URL } = require('url');
-    const dns = require('dns').promises;
     
     let poolConfig;
     if (process.env.DATABASE_URL) {
@@ -246,30 +245,8 @@ const initializePool = async () => {
       
       let connectionString = dbUrl;
       
-      // Force IPv4 resolution to avoid IPv6 connection issues
-      try {
-        const parsedUrl = new URL(dbUrl);
-        const hostname = parsedUrl.hostname;
-        
-        // Attempt to resolve hostname to IPv4 address
-        console.log(`Resolving hostname ${hostname} to IPv4...`);
-        const addresses = await dns.resolve4(hostname);
-        
-        if (addresses && addresses.length > 0) {
-          // Use the first IPv4 address
-          const ipv4Address = addresses[0];
-          console.log(`Resolved to IPv4 address: ${ipv4Address}`);
-          
-          // Replace hostname with IPv4 address in connection string
-          parsedUrl.hostname = ipv4Address;
-          connectionString = parsedUrl.toString();
-          console.log('Using IPv4 address for database connection');
-        }
-      } catch (dnsError) {
-        console.error('Error resolving hostname to IPv4:', dnsError.message);
-        console.log('Falling back to original connection string');
-        // Continue with original connection string if DNS resolution fails
-      }
+      // Skip DNS resolution - just use the connection string as-is
+      // This was causing issues on other machines
       // IMPORTANT: Keep using pooler URL if it's provided - it handles connection pooling better
       // Only switch to direct connection if explicitly needed
       if (dbUrl && dbUrl.includes('pooler.supabase.com') && process.env.FORCE_DIRECT_CONNECTION === 'true') {
@@ -282,22 +259,7 @@ const initializePool = async () => {
              connectionString = `postgres://${user}:${password}@${process.env.DB_HOST}:5432/${process.env.DB_NAME}?sslmode=require`;
              console.log('Detected pooler URL in DATABASE_URL, switching to direct connection using DB_HOST/DB_NAME.');
              
-             // Also resolve DB_HOST to IPv4
-             try {
-               const directUrl = new URL(connectionString);
-               const directHostname = directUrl.hostname;
-               console.log(`Resolving direct hostname ${directHostname} to IPv4...`);
-               const directAddresses = await dns.resolve4(directHostname);
-               
-               if (directAddresses && directAddresses.length > 0) {
-                 directUrl.hostname = directAddresses[0];
-                 connectionString = directUrl.toString();
-                 console.log(`Direct connection resolved to IPv4: ${directAddresses[0]}`);
-                 console.log(`Updated connection string: ${connectionString.replace(/([^:]+:\/\/[^:]+):[^@]+@/m, '$1:********@')}`);
-               }
-             } catch (directDnsError) {
-               console.error('Error resolving direct hostname to IPv4:', directDnsError.message);
-             }
+             // Skip DNS resolution for direct connection too
           } else {
              console.error('DATABASE_URL contains pooler, but DB_HOST or DB_NAME are not set for direct connection.');
              // Fallback to using the pooler URL if direct connection details are missing
@@ -325,21 +287,8 @@ const initializePool = async () => {
       };
       console.log('Using DATABASE_URL for database connection with SSL certificate');
     } else {
-      // When using individual DB_HOST, also resolve to IPv4
+      // Use DB_HOST directly without DNS resolution
       let dbHost = process.env.DB_HOST;
-      
-      try {
-        console.log(`Resolving DB_HOST ${dbHost} to IPv4...`);
-        const hostAddresses = await dns.resolve4(dbHost);
-        
-        if (hostAddresses && hostAddresses.length > 0) {
-          dbHost = hostAddresses[0];
-          console.log(`DB_HOST resolved to IPv4: ${dbHost}`);
-        }
-      } catch (hostDnsError) {
-        console.error('Error resolving DB_HOST to IPv4:', hostDnsError.message);
-        console.log('Using original DB_HOST');
-      }
       
       poolConfig = {
         host: dbHost,
@@ -1122,6 +1071,33 @@ const createMinimalSchema = async () => {
         form_id INTEGER,
         client_id INTEGER,
         answers TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create clients table for client management features
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        extra_data TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create forms table used by surveys
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS forms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT,
+        questions TEXT,
+        created_by INTEGER,
+        is_multi_step INTEGER DEFAULT 0,
+        steps TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )

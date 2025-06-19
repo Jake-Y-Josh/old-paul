@@ -1,4 +1,5 @@
 const Client = require('../../models/client');
+const Form = require('../../models/form');
 const { validationResult } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
@@ -41,11 +42,13 @@ const upload = multer({
 exports.listClients = async (req, res) => {
   try {
     const clients = await Client.findAll();
+    const forms = await Form.findAll();
     
     res.render('admin/clients/list', {
       title: 'Client Management',
       username: req.session.user ? req.session.user.username : req.session.username,
       clients: clients,
+      forms: forms,
       success: req.flash('success') || req.query.success,
       error: req.flash('error') || req.query.error
     });
