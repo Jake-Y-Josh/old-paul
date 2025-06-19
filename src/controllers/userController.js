@@ -106,9 +106,10 @@ const createUser = async (req, res) => {
       const Activity = require('../models/activity');
       await Activity.log({
         admin_id: req.session.adminId,
-        action: 'create_user',
-        details: `Sent invitation to new user: ${username} (${email})`,
-        ip_address: req.ip
+        action: 'send_invitation',
+        entity_type: 'user',
+        entity_id: newAdmin?.id,
+        details: `Sent invitation to new user: ${username} (${email})`
       });
     }
     
@@ -409,8 +410,9 @@ const acceptInvitation = async (req, res) => {
     await Activity.log({
       admin_id: admin.id,
       action: 'accept_invitation',
-      details: `User ${admin.username} accepted invitation and set password`,
-      ip_address: req.ip
+      entity_type: 'user',
+      entity_id: admin.id,
+      details: `User ${admin.username} accepted invitation and set password`
     });
     
     res.status(200).json({
