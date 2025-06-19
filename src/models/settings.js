@@ -206,13 +206,27 @@ class Settings {
         return settings;
       }
 
-      const result = await db.query('SELECT * FROM settings WHERE id = 1');
-      const settings = result.rows[0]?.settings || {};
+      // Query for specific keys
+      const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+      const query = `
+        SELECT key, value FROM settings 
+        WHERE key IN (${placeholders})
+      `;
       
-      // Check for empty values and replace with environment variables
+      const result = await db.query(query, keys);
+      
+      // Build settings object
+      const settings = {};
+      
+      // First, populate from database results
+      result.rows.forEach(row => {
+        settings[row.key] = row.value;
+      });
+      
+      // Then check each key and use fallback if needed
       keys.forEach(key => {
-        // Use environment variables for null, empty or whitespace values
-        if (!settings[key] || settings[key] === '' || settings[key].trim() === '') {
+        // Use environment variables for missing, null, empty or whitespace values
+        if (!settings[key] || settings[key] === '' || (typeof settings[key] === 'string' && settings[key].trim() === '')) {
           settings[key] = process.env[key] || Settings.getDefaultValueForKey(key);
         }
       });
@@ -279,17 +293,37 @@ class Settings {
         return true;
       }
 
-      const result = await db.query(
-        `UPDATE settings
-         SET settings = jsonb_delete_key(settings, $1)
-         WHERE id = 1
-         RETURNING settings`,
+      await db.query(
+        `DELETE FROM settings WHERE key = $1`,
         [key]
       );
       return true;
     } catch (error) {
       console.error(`Error deleting setting ${key}:`, error);
       return false;
+    }
+  }
+
+  /**
+   * Update multiple settings at once
+   * @param {Object} settingsObj - Object with key-value pairs to update
+   * @returns {Promise<boolean>} True if successful
+   */
+  static async update(settingsObj) {
+    try {
+      // Update emailTemplate and signature settings
+      if (settingsObj.emailTemplate !== undefined) {
+        await this.set('emailTemplate', settingsObj.emailTemplate, 'Email template for feedback requests');
+      }
+      
+      if (settingsObj.signature !== undefined) {
+        await this.set('signature', JSON.stringify(settingsObj.signature), 'Email signature configuration');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      throw error;
     }
   }
 

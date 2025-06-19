@@ -11,12 +11,27 @@ const logger = require('./logger');
 const processClientExcel = (filePath, clientIdField = 'Client ID') => {
   return new Promise((resolve, reject) => {
     try {
-      // Read the Excel file
-      const workbook = XLSX.readFile(filePath);
+      // Read the Excel file with error handling
+      let workbook;
+      try {
+        workbook = XLSX.readFile(filePath);
+      } catch (readError) {
+        logger.error('Failed to read Excel file:', readError);
+        return reject(new Error('Failed to read Excel file. Please ensure it is a valid .xlsx file.'));
+      }
+      
+      // Check if workbook has sheets
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        return reject(new Error('Excel file appears to be empty or has no sheets.'));
+      }
       
       // Get the first sheet
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      
+      if (!worksheet) {
+        return reject(new Error('Could not read the first worksheet from the Excel file.'));
+      }
       
       // Convert sheet to JSON
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
@@ -144,12 +159,27 @@ const processClientExcel = (filePath, clientIdField = 'Client ID') => {
 const validateExcelFormat = (filePath) => {
   return new Promise((resolve, reject) => {
     try {
-      // Read the Excel file
-      const workbook = XLSX.readFile(filePath);
+      // Read the Excel file with error handling
+      let workbook;
+      try {
+        workbook = XLSX.readFile(filePath);
+      } catch (readError) {
+        logger.error('Failed to read Excel file for validation:', readError);
+        return resolve(false); // Invalid format
+      }
+      
+      // Check if workbook has sheets
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        return resolve(false);
+      }
       
       // Get the first sheet
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      
+      if (!worksheet) {
+        return resolve(false);
+      }
       
       // Convert first row to JSON
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });

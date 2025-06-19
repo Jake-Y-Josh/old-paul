@@ -44,6 +44,13 @@
             </div>
           </div>
           
+          <% if (preview.removeNotInSpreadsheet && preview.clientsToRemove && preview.clientsToRemove.length > 0) { %>
+            <div class="alert alert-danger mt-3 mb-0">
+              <i class="fas fa-trash-alt me-2"></i>
+              <strong>Removal Mode Active:</strong> <%= preview.clientsToRemove.length %> existing clients will be removed because they are not in the uploaded file.
+            </div>
+          <% } %>
+          
           <% if (preview.updateExisting) { %>
             <div class="alert alert-info mt-3 mb-0">
               <i class="fas fa-info-circle me-2"></i>
@@ -196,6 +203,49 @@
                       <td><%= client.enablecrm_id || '-' %></td>
                     </tr>
                   <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Clients to Remove -->
+      <% if (preview.removeNotInSpreadsheet && preview.clientsToRemove && preview.clientsToRemove.length > 0) { %>
+        <div class="card mb-4">
+          <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-trash-alt me-2"></i>Clients to Remove (<%= preview.clientsToRemove.length %>)
+              <span class="badge bg-dark ms-2">Will be deleted</span>
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Client ID</th>
+                    <th>Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% preview.clientsToRemove.slice(0, 10).forEach(client => { %>
+                    <tr>
+                      <td><%= client.name %></td>
+                      <td><%= client.email %></td>
+                      <td><%= client.enablecrm_id || client.extra_data?.clientId || '-' %></td>
+                      <td><%= new Date(client.created_at).toLocaleDateString() %></td>
+                    </tr>
+                  <% }); %>
+                  <% if (preview.clientsToRemove.length > 10) { %>
+                    <tr>
+                      <td colspan="4" class="text-center text-muted">
+                        ... and <%= preview.clientsToRemove.length - 10 %> more
+                      </td>
+                    </tr>
+                  <% } %>
                 </tbody>
               </table>
             </div>

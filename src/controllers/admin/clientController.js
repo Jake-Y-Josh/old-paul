@@ -162,6 +162,7 @@ exports.uploadClients = async (req, res) => {
     const fileExtension = path.extname(req.file.originalname).toLowerCase();
     const clientIdField = req.body.clientIdField || 'Client ID';
     const updateExisting = req.body.updateExisting === 'on';
+    const removeNotInSpreadsheet = req.body.removeNotInSpreadsheet === 'on';
     
     let clients = [];
     let isValid = false;
@@ -262,17 +263,46 @@ exports.uploadClients = async (req, res) => {
       }
     }
     
+    // Get list of clients to be removed if option is selected
+    let clientsToRemove = [];
+    if (removeNotInSpreadsheet) {
+      // Get all existing clients from database
+      const allClients = await Client.findAll();
+      
+      // Get emails from imported clients
+      const importedEmails = new Set([
+        ...newClients.map(c => c.email.toLowerCase()),
+        ...existingClients.map(c => c.email.toLowerCase())
+      ]);
+      
+      // Find clients that exist in DB but not in import
+      clientsToRemove = allClients.filter(client => 
+        !importedEmails.has(client.email.toLowerCase())
+      );
+    }
+    
     // Store the parsed data in session for preview
     req.session.importPreview = {
       newClients,
       existingClients,
       duplicatesInFile,
       updateExisting,
+      removeNotInSpreadsheet,
+      clientsToRemove,
       totalCount: clients.length
     };
     
-    // Redirect to preview page
-    res.redirect('/admin/clients/import-preview');
+    // Save session before redirecting
+    req.session.save((err) => {
+      if (err) {
+        logger.error('Error saving session:', err);
+        req.flash('error', 'Failed to save import data. Please try again.');
+        return res.redirect('/admin/clients/upload');
+      }
+      
+      // Redirect to preview page
+      res.redirect('/admin/clients/import-preview');
+    });
   } catch (error) {
     logger.error('File upload error:', error);
     
@@ -302,8 +332,11 @@ exports.showImportPreview = async (req, res) => {
     
     res.render('admin/clients/import-preview', {
       title: 'Import Preview',
+      username: req.session.user ? req.session.user.username : req.session.username,
       preview,
-      layout: 'layouts/admin'
+      layout: 'layouts/admin',
+      success: req.flash('success')[0] || null,
+      error: req.flash('error')[0] || null
     });
   } catch (error) {
     logger.error('Error showing import preview:', error);
@@ -342,6 +375,19 @@ exports.confirmImport = async (req, res) => {
     // Insert or update the clients in the database
     const results = await Client.bulkUpsert(clientsToImport);
     
+    // Remove clients not in spreadsheet if option was selected
+    let removedCount = 0;
+    if (preview.removeNotInSpreadsheet && preview.clientsToRemove && preview.clientsToRemove.length > 0) {
+      for (const client of preview.clientsToRemove) {
+        try {
+          await Client.delete(client.id);
+          removedCount++;
+        } catch (error) {
+          logger.error(`Failed to remove client ${client.id}:`, error);
+        }
+      }
+    }
+    
     // Clear the preview data
     delete req.session.importPreview;
     
@@ -353,6 +399,7 @@ exports.confirmImport = async (req, res) => {
     let message = `Import completed: ${created} clients created`;
     if (updated > 0) message += `, ${updated} updated`;
     if (skipped > 0 && !preview.updateExisting) message += `, ${skipped} skipped (already exist)`;
+    if (removedCount > 0) message += `, ${removedCount} removed`;
     if (preview.duplicatesInFile.length > 0) {
       message += `. ${preview.duplicatesInFile.length} duplicates in file were ignored`;
     }

@@ -40,11 +40,21 @@
             <div class="form-text">Specify the column name that contains the client ID in your Excel file</div>
           </div>
           
-          <div class="form-check mb-4">
+          <div class="form-check mb-3">
             <input class="form-check-input" type="checkbox" id="updateExisting" name="updateExisting" checked>
             <label class="form-check-label" for="updateExisting">
               Update existing clients (by Client ID or email address)
             </label>
+          </div>
+          
+          <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" id="removeNotInSpreadsheet" name="removeNotInSpreadsheet">
+            <label class="form-check-label" for="removeNotInSpreadsheet">
+              Remove clients not found in this spreadsheet
+            </label>
+            <div class="form-text text-danger">
+              <i class="fas fa-exclamation-triangle"></i> Warning: This will delete all clients that are not included in the uploaded file
+            </div>
           </div>
           
           <div id="uploadStatus" class="d-none">

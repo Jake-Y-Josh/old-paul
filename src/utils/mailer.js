@@ -134,10 +134,24 @@ const logEmail = async (data) => {
 async function getEmailTemplate() {
   try {
     if (Settings && typeof Settings.get === 'function') {
-      const settings = await Settings.get();
+      // Get email template
+      const emailTemplate = await Settings.get('emailTemplate');
+      
+      // Get signature
+      const signatureStr = await Settings.get('signature');
+      let signature = null;
+      
+      if (signatureStr) {
+        try {
+          signature = JSON.parse(signatureStr);
+        } catch (e) {
+          console.error('Error parsing signature JSON:', e);
+        }
+      }
+      
       return {
-        template: settings?.emailTemplate || getDefaultTemplate(),
-        signature: settings?.signature || getDefaultSignature()
+        template: emailTemplate || getDefaultTemplate(),
+        signature: signature || getDefaultSignature()
       };
     }
   } catch (error) {
@@ -510,7 +524,7 @@ const sendTestEmail = async (testEmail) => {
     const config = await getEmailConfig();
     
     // Send test email
-    const info = await transporter.sendMail({
+    await transporter.sendMail({
       from: `"${config.fromName}" <${config.fromEmail}>`,
       to: testEmail,
       replyTo: config.replyTo,

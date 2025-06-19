@@ -1,5 +1,4 @@
 const Settings = require('../models/settings');
-const { sendTestEmail } = require('../utils/mailer');
 
 /**
  * Settings Controller
@@ -101,7 +100,7 @@ const updateSettings = async (req, res) => {
 };
 
 // Test email configuration
-const testEmailConfig = async (req, res) => {
+const testEmailConfig = async (_req, res) => {
   try {
     // For testing the connection, we don't need a specific email address
     // We'll just verify the SMTP connection
