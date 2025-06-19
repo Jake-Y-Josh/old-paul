@@ -1,4 +1,4 @@
-const db = require('../database/db');
+const { supabase } = require('../database/supabase');
 const logger = require('../utils/logger');
 
 class Client {
@@ -18,9 +18,16 @@ class Client {
    */
   static async count() {
     try {
-      const query = `SELECT COUNT(*) FROM clients`;
-      const result = await db.query(query);
-      return parseInt(result.rows[0].count, 10);
+      const { count, error } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) {
+        logger.error('Error counting clients:', error);
+        return 0;
+      }
+      
+      return count || 0;
     } catch (error) {
       logger.error('Error counting clients:', error);
       return 0;
@@ -30,18 +37,24 @@ class Client {
   // Create a new client
   static async create(clientData) {
     try {
-      const query = `
-        INSERT INTO clients (name, email, extra_data)
-        VALUES ($1, $2, $3) RETURNING *
-      `;
+      const { data, error } = await supabase
+        .from('clients')
+        .insert([
+          {
+            name: clientData.name,
+            email: clientData.email,
+            extra_data: clientData.extraData || {}
+          }
+        ])
+        .select()
+        .single();
       
-      const result = await db.query(query, [
-        clientData.name,
-        clientData.email,
-        clientData.extraData || {}
-      ]);
+      if (error) {
+        logger.error('Error in Client.create:', error);
+        throw error;
+      }
       
-      return result.rows[0];
+      return data;
     } catch (error) {
       logger.error('Error in Client.create:', error);
       throw error;
@@ -51,14 +64,21 @@ class Client {
   // Find client by ID
   static async findById(id) {
     try {
-      const query = 'SELECT * FROM clients WHERE id = $1';
-      const result = await db.query(query, [id]);
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', id)
+        .single();
       
-      if (result.rows.length === 0) {
-        return null;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // No rows found
+        }
+        logger.error('Error in Client.findById:', error);
+        throw error;
       }
       
-      return result.rows[0];
+      return data;
     } catch (error) {
       logger.error('Error in Client.findById:', error);
       throw error;
@@ -68,14 +88,21 @@ class Client {
   // Find client by email
   static async findByEmail(email) {
     try {
-      const query = 'SELECT * FROM clients WHERE email = $1';
-      const result = await db.query(query, [email]);
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('email', email)
+        .single();
       
-      if (result.rows.length === 0) {
-        return null;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // No rows found
+        }
+        logger.error('Error in Client.findByEmail:', error);
+        throw error;
       }
       
-      return result.rows[0];
+      return data;
     } catch (error) {
       logger.error('Error in Client.findByEmail:', error);
       throw error;
@@ -85,12 +112,17 @@ class Client {
   // Get all clients
   static async findAll() {
     try {
-      const query = `
-        SELECT * FROM clients
-        ORDER BY created_at DESC
-      `;
-      const { rows } = await db.query(query);
-      return rows;
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('[ERROR] Error in Client.findAll:', error);
+        throw error;
+      }
+      
+      return data || [];
     } catch (error) {
       console.error('[ERROR] Error in Client.findAll:', error);
       throw error;
@@ -122,47 +154,44 @@ class Client {
       const values = [];
       let paramCount = 1;
       
-      // Build update query dynamically based on provided fields
+      // Build update object
+      const updateObject = {};
+      
       for (const [key, value] of Object.entries(updateData)) {
         if (allowedFields.includes(key)) {
           // Convert extraData to extra_data for DB column naming
           const dbFieldName = key === 'extraData' ? 'extra_data' : key;
-          updates.push(`${dbFieldName} = $${paramCount}`);
-          values.push(value);
-          paramCount++;
+          updateObject[dbFieldName] = value;
           logger.info(`Adding update for field ${dbFieldName} with value: ${value}`);
         }
       }
       
-      if (updates.length === 0) {
+      if (Object.keys(updateObject).length === 0) {
         throw new Error('No valid fields to update');
       }
       
       // Add updated_at timestamp
-      updates.push(`updated_at = NOW()`);
+      updateObject.updated_at = new Date();
       
-      // Add ID to values array
-      values.push(id);
+      const { data, error } = await supabase
+        .from('clients')
+        .update(updateObject)
+        .eq('id', id)
+        .select()
+        .single();
       
-      const query = `
-        UPDATE clients
-        SET ${updates.join(', ')}
-        WHERE id = $${paramCount}
-        RETURNING *
-      `;
+      if (error) {
+        logger.error(`Error updating client ${id}:`, error);
+        throw error;
+      }
       
-      logger.info(`Executing update query: ${query}`);
-      logger.info(`With values: ${values.join(', ')}`);
-      
-      const result = await db.query(query, values);
-      
-      if (result.rows.length === 0) {
+      if (!data) {
         logger.error(`No client found with ID ${id} or no changes were made`);
         throw new Error('Client not found or no changes made');
       }
       
-      logger.info(`Successfully updated client ${id}:`, result.rows[0]);
-      return result.rows[0];
+      logger.info(`Successfully updated client ${id}:`, data);
+      return data;
     } catch (error) {
       logger.error(`Error in Client.update for client ${id}:`, error);
       throw error;
@@ -172,11 +201,19 @@ class Client {
   // Delete client
   static async delete(id) {
     try {
-      const query = 'DELETE FROM clients WHERE id = $1 RETURNING *';
-      const result = await db.query(query, [id]);
+      const { data, error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', id)
+        .select()
+        .single();
       
-      if (result.rows.length === 0) {
-        throw new Error('Client not found');
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('Client not found');
+        }
+        logger.error('Error in Client.delete:', error);
+        throw error;
       }
       
       return true;
@@ -189,20 +226,22 @@ class Client {
   // Find client by clientId (stored in extra_data)
   static async findByClientId(clientId) {
     try {
-      // Use a JSON query to find clients with the given clientId in extra_data
-      const query = `
-        SELECT * FROM clients
-        WHERE extra_data->>'clientId' = $1
-        LIMIT 1
-      `;
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('extra_data->>clientId', clientId.toString())
+        .limit(1)
+        .single();
       
-      const result = await db.query(query, [clientId.toString()]);
-      
-      if (result.rows.length === 0) {
-        return null;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // No rows found
+        }
+        logger.error('Error in Client.findByClientId:', error);
+        throw error;
       }
       
-      return result.rows[0];
+      return data;
     } catch (error) {
       logger.error('Error in Client.findByClientId:', error);
       throw error;

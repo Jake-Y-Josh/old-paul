@@ -49,8 +49,8 @@ exports.listClients = async (req, res) => {
       username: req.session.user ? req.session.user.username : req.session.username,
       clients: clients,
       forms: forms,
-      success: req.flash('success') || req.query.success,
-      error: req.flash('error') || req.query.error
+      success: req.flash('success')[0] || req.query.success || null,
+      error: req.flash('error')[0] || req.query.error || null
     });
   } catch (error) {
     logger.error('Error listing clients:', error);

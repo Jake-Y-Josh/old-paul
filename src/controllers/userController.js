@@ -1,7 +1,6 @@
 const Admin = require('../models/admin');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const db = require('../database/db');
 
 /**
  * User Management Controller for admin panel
@@ -139,6 +138,12 @@ const editUserPage = async (req, res) => {
 // Update a user
 const updateUser = async (req, res) => {
   try {
+    console.log('Update user request received:', {
+      userId: req.params.id,
+      body: req.body,
+      method: req.method
+    });
+    
     const userId = req.params.id;
     const { email, current_password, new_password, confirm_password } = req.body;
     
@@ -159,11 +164,29 @@ const updateUser = async (req, res) => {
       });
     }
     
-    // Update the user in the database - only updating the email for now
-    const result = await db.query(
-      'UPDATE admins SET email = $1 WHERE id = $2 RETURNING *',
-      [email, userId]
-    );
+    // Check if email is being changed and if it already exists
+    if (email !== user.email) {
+      const existingEmail = await Admin.getByEmail(email);
+      if (existingEmail && existingEmail.id !== parseInt(userId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already exists'
+        });
+      }
+    }
+    
+    // Update the user's email using Supabase
+    const { supabase } = require('../database/supabase');
+    const { data: updateResult, error: updateError } = await supabase
+      .from('admins')
+      .update({ email: email })
+      .eq('id', userId)
+      .select();
+    
+    if (updateError) {
+      console.error('Error updating user email:', updateError);
+      throw updateError;
+    }
     
     // If password should be updated too
     if (new_password && current_password) {
@@ -238,8 +261,17 @@ const deleteUser = async (req, res) => {
       });
     }
     
-    // Delete the user
-    await db.query('DELETE FROM admins WHERE id = $1', [userId]);
+    // Delete the user using Supabase
+    const { supabase } = require('../database/supabase');
+    const { error: deleteError } = await supabase
+      .from('admins')
+      .delete()
+      .eq('id', userId);
+    
+    if (deleteError) {
+      console.error('Error deleting user:', deleteError);
+      throw deleteError;
+    }
     
     // Log activity
     if (req.session && req.session.adminId) {

@@ -193,156 +193,51 @@ if (isSandboxEnvironment()) {
 // Create a database pool based on environment
 let pool;
 
-// Initialize pool asynchronously to handle DNS resolution
-const initializePool = async () => {
-  // In sandbox environment, use SQLite or mock immediately
-  if (isSandboxEnvironment()) {
-  if (process.env.USE_SQLITE === 'true') {
-    pool = createSqlitePool();
-  } else {
-    try {
-      // Try connecting to local PostgreSQL first
-      pool = new Pool({
-        host: 'localhost',
-        port: 5432,
-        user: 'postgres',
-        password: 'postgres',
-        database: 'postgres',
-        ssl: false
-      });
-      
-      // Add error handler to switch to SQLite if connection fails
-      pool.on('error', (err) => {
-        if ((err.code === 'ECONNREFUSED' || err.code === 'ENETUNREACH') && !usingSqlite) {
-          console.error('PostgreSQL connection failed. Switching to SQLite fallback...');
-          pool = createSqlitePool();
-        } else {
-          console.error('Database error:', err);
-        }
-      });
-    } catch (e) {
-      console.error('Error creating PostgreSQL pool:', e.message);
-      pool = createSqlitePool();
-    }
-  }
+// Initialize the pool synchronously where possible
+if (isSandboxEnvironment()) {
+  pool = createSqlitePool();
 } else {
-  // Normal environment, use PostgreSQL connection from env vars
+  // For production, create the pool synchronously
   try {
-    // Import URL module for parsing connection strings
-    const { URL } = require('url');
-    
     let poolConfig;
     if (process.env.DATABASE_URL) {
-      // Use proper SSL configuration with certificate
-      // Parse the DATABASE_URL to ensure we're using the direct connection
-      const dbUrl = process.env.DATABASE_URL;
-      
-      // ### ADDED LOGGING ###
-      console.log('Attempting DB connection using DATABASE_URL:');
-      // Log the URL safely by redacting the password
-      console.log('  URL:', dbUrl ? dbUrl.replace(/([^:]+:\/\/[^:]+):[^@]+@/m, '$1:********@') : 'Not set');
-      // ### END ADDED LOGGING ###
-      
-      let connectionString = dbUrl;
-      
-      // Skip DNS resolution - just use the connection string as-is
-      // This was causing issues on other machines
-      // IMPORTANT: Keep using pooler URL if it's provided - it handles connection pooling better
-      // Only switch to direct connection if explicitly needed
-      if (dbUrl && dbUrl.includes('pooler.supabase.com') && process.env.FORCE_DIRECT_CONNECTION === 'true') {
-        // Extract the password and construct direct connection
-        const match = dbUrl.match(/postgres:\/\/([^:]+):([^@]+)@/);
-        if (match) {
-          const [, user, password] = match;
-          // Assuming DB_HOST and DB_NAME environment variables hold the direct connection details
-          if (process.env.DB_HOST && process.env.DB_NAME) {
-             connectionString = `postgres://${user}:${password}@${process.env.DB_HOST}:5432/${process.env.DB_NAME}?sslmode=require`;
-             console.log('Detected pooler URL in DATABASE_URL, switching to direct connection using DB_HOST/DB_NAME.');
-             
-             // Skip DNS resolution for direct connection too
-          } else {
-             console.error('DATABASE_URL contains pooler, but DB_HOST or DB_NAME are not set for direct connection.');
-             // Fallback to using the pooler URL if direct connection details are missing
-             connectionString = dbUrl;
-             console.log('Falling back to using pooler URL as DB_HOST/DB_NAME are not set.');
-          }
-        } else {
-           console.error('Could not parse user/password from DATABASE_URL containing pooler.');
-           // Fallback to using the pooler URL if parsing fails
-           connectionString = dbUrl;
-           console.log('Falling back to using pooler URL as DATABASE_URL parsing failed.');
-        }
-      } else {
-         console.log('DATABASE_URL does not contain pooler. Using DATABASE_URL as provided.');
-      }
-
       poolConfig = {
-        connectionString: connectionString,
-        ssl: sslConfig,
-        // Add connection timeout to handle network issues
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
         connectionTimeoutMillis: 5000,
-        // Retry on ECONNREFUSED
         max: 20,
         idleTimeoutMillis: 30000
       };
-      console.log('Using DATABASE_URL for database connection with SSL certificate');
     } else {
-      // Use DB_HOST directly without DNS resolution
-      let dbHost = process.env.DB_HOST;
-      
       poolConfig = {
-        host: dbHost,
+        host: process.env.DB_HOST,
         port: process.env.DB_PORT,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
-        ssl: sslConfig
+        ssl: { rejectUnauthorized: false }
       };
-      console.log('Using DB_HOST/DB_USER/DB_NAME environment variables for database connection with SSL certificate');
     }
     
-    // ### ADDED LOGGING ###
-    console.log('DB Pool Config:');
-    console.log('  connectionString:', poolConfig.connectionString ? poolConfig.connectionString.replace(/([^:]+:\/\/[^:]+):[^@]+@/m, '$1:********@') : 'Not set');
-    console.log('  ssl.rejectUnauthorized:', poolConfig.ssl.rejectUnauthorized);
-    // Add other relevant config details you want to log, like host, user, dbname if not using connectionString
-    // if (!process.env.DATABASE_URL) {
-    //   console.log('  host:', process.env.DB_HOST);
-    //   console.log('  user:', process.env.DB_USER);
-    //   console.log('  database:', process.env.DB_NAME);
-    // }
-    console.log('### END ADDED LOGGING ###');
-
     pool = new Pool(poolConfig);
+    pool.on('connect', () => {
+      console.log('Connected to the PostgreSQL database');
+    });
+    pool.on('error', (err) => {
+      console.error('Database pool error:', err);
+    });
   } catch (e) {
     console.error('Error creating PostgreSQL pool:', e.message);
     pool = createSqlitePool();
   }
-  }
-  return pool;
-};
-
-// Initialize the pool immediately
-(async () => {
-  pool = await initializePool();
-  
-  // Test the connection
-  if (pool) {
-    pool.on('connect', () => {
-      if (!usingSqlite) {
-        console.log('Connected to the PostgreSQL database with SSL');
-      }
-    });
-  }
-})();
+}
 
 // Helper function to execute queries with error handling
 const query = async (text, params) => {
   try {
-    // Ensure pool is initialized
+    // Pool should already be initialized
     if (!pool) {
-      console.log('Pool not initialized, initializing now...');
-      pool = await initializePool();
+      throw new Error('Database pool not initialized');
     }
     
     const result = await pool.query(text, params);
@@ -1114,11 +1009,7 @@ const createMinimalSchema = async () => {
 // Function to initialize database
 const initDb = async () => {
   try {
-    // Ensure pool is initialized
-    if (!pool) {
-      console.log('Pool not initialized in initDb, initializing now...');
-      pool = await initializePool();
-    }
+    // Pool should already be initialized synchronously
     // For SQLite, create tables
     if (usingSqlite) {
       await createMinimalSchema();
