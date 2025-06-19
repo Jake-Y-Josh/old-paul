@@ -259,9 +259,11 @@ var activityData = typeof locals.recentActivity !== 'undefined' ? locals.recentA
             <h6 class="card-title mb-0 text-white"><i class="fas fa-history me-1"></i>Recent Emails</h6>
           </div>
           <div class="card-body p-0 flex-grow-1 d-flex flex-column">
-            <% if (typeof recentEmails !== 'undefined' && recentEmails && recentEmails.length > 0) { %>
+            <% if (typeof recentEmails !== 'undefined' && recentEmails && recentEmails.length > 0) { 
+              const filteredEmails = recentEmails.filter(email => email.type !== 'submission_notification');
+              if (filteredEmails.length > 0) { %>
               <div class="list-group list-group-flush flex-grow-1">
-                <% recentEmails.slice(0, 4).forEach(email => { %>
+                <% filteredEmails.slice(0, 4).forEach(email => { %>
                   <div class="list-group-item email-item py-1 px-3">
                     <div class="d-flex w-100 justify-content-between">
                       <div class="text-truncate" style="max-width: 70%;">
@@ -309,16 +311,18 @@ var activityData = typeof locals.recentActivity !== 'undefined' ? locals.recentA
                           <span class="badge theme-light-badge"><%= formattedType %></span>
                         <% } %>
                       </div>
-                      
-                      <small>
-                        <a href="/admin/emails/logs/<%= email.id %>" class="theme-link">
-                          <i class="fas fa-eye"></i>
-                        </a>
-                      </small>
                     </div>
                   </div>
                 <% }); %>
               </div>
+              <% } else { %>
+                <div class="d-flex align-items-center justify-content-center h-100">
+                  <div class="text-center text-muted">
+                    <i class="fas fa-envelope-open fa-3x mb-3"></i>
+                    <p>No recent feedback emails</p>
+                  </div>
+                </div>
+              <% } %>
             <% } else { %>
               <div class="d-flex align-items-center justify-content-center h-100">
                 <div class="text-center text-muted">
