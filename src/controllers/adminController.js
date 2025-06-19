@@ -8,6 +8,7 @@ const Submission = require('../models/submission');
 const Email = require('../models/email');
 const Activity = require('../models/activity');
 const EmailLog = require('../models/emailLog');
+const RememberToken = require('../models/rememberToken');
 
 /**
  * Admin Controller
@@ -44,7 +45,7 @@ const loginPage = async (req, res) => {
 // Process login attempt
 const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, rememberMe } = req.body;
     
     // Check if login credentials are provided
     if (!username || !password) {
@@ -74,12 +75,41 @@ const login = async (req, res) => {
           req.session.username = 'admin';
           req.session.authenticated = true;
           req.session.loginTime = new Date().toISOString();
+          
+          // Handle "Remember Me" functionality
+          if (rememberMe) {
+            // Extend session to 30 days if "Remember Me" is checked
+            req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+            console.log('Remember Me checked: Session extended to 30 days');
+          } else {
+            // Default session duration (24 hours)
+            req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
+            console.log('Remember Me not checked: Session set to 24 hours');
+          }
 
-          req.session.save((saveErr) => {
+          req.session.save(async (saveErr) => {
             if (saveErr) {
               console.error('Error saving session:', saveErr);
               req.flash('error', 'Error with session. Please try again');
               return res.redirect('/admin/login');
+            }
+
+            // Generate remember token if "Remember Me" is checked
+            if (rememberMe) {
+              try {
+                const token = await RememberToken.create(1, 30); // Admin ID 1, valid for 30 days
+                // Set remember token cookie
+                res.cookie('remember_token', token, {
+                  httpOnly: true,
+                  secure: process.env.NODE_ENV === 'production',
+                  sameSite: 'lax',
+                  maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+                });
+                console.log('Remember token created and set in cookie');
+              } catch (tokenError) {
+                console.error('Error creating remember token:', tokenError);
+                // Continue with login even if token creation fails
+              }
             }
 
             console.log('Session saved successfully. Session data:', JSON.stringify(req.session));
@@ -134,13 +164,44 @@ const login = async (req, res) => {
       // Set session
       req.session.adminId = admin.id;
       req.session.username = admin.username;
+      req.session.authenticated = true;
+      req.session.loginTime = new Date().toISOString();
+      
+      // Handle "Remember Me" functionality
+      if (rememberMe) {
+        // Extend session to 30 days if "Remember Me" is checked
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        console.log('Remember Me checked: Session extended to 30 days');
+      } else {
+        // Default session duration (24 hours)
+        req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
+        console.log('Remember Me not checked: Session set to 24 hours');
+      }
 
       // Force session save before redirect
-      req.session.save((err) => {
+      req.session.save(async (err) => {
         if (err) {
           console.error('Error saving session:', err);
           req.flash('error', 'Error with session. Please try again');
           return res.redirect('/admin/login');
+        }
+
+        // Generate remember token if "Remember Me" is checked
+        if (rememberMe) {
+          try {
+            const token = await RememberToken.create(admin.id, 30); // Valid for 30 days
+            // Set remember token cookie
+            res.cookie('remember_token', token, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            });
+            console.log('Remember token created and set in cookie');
+          } catch (tokenError) {
+            console.error('Error creating remember token:', tokenError);
+            // Continue with login even if token creation fails
+          }
         }
 
         console.log(`Login successful for ${username}`);
@@ -160,7 +221,19 @@ const login = async (req, res) => {
 };
 
 // Logout
-const logout = (req, res) => {
+const logout = async (req, res) => {
+  // Clear remember token if it exists
+  const rememberToken = req.cookies.remember_token;
+  if (rememberToken) {
+    try {
+      await RememberToken.delete(rememberToken);
+      res.clearCookie('remember_token');
+      console.log('Remember token cleared on logout');
+    } catch (error) {
+      console.error('Error clearing remember token:', error);
+    }
+  }
+  
   // Destroy session
   req.session.destroy((err) => {
     if (err) {

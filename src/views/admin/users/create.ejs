@@ -37,22 +37,12 @@
               <div class="mb-3">
                 <label for="email" class="form-label">Email Address*</label>
                 <input type="email" class="form-control" id="email" name="email" required>
-              </div>
-              
-              <div class="mb-3">
-                <label for="password" class="form-label">Password*</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-                <div class="form-text">Password should be at least 8 characters with a mix of letters, numbers, and symbols.</div>
-              </div>
-              
-              <div class="mb-3">
-                <label for="confirm_password" class="form-label">Confirm Password*</label>
-                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                <div class="form-text">An invitation email will be sent to this address where the user can set their password.</div>
               </div>
               
               <div class="d-flex justify-content-end">
                 <a href="/admin/users" class="btn btn-secondary me-2">Cancel</a>
-                <button type="submit" class="btn btn-primary">Create User</button>
+                <button type="submit" class="btn btn-primary">Send Invitation</button>
               </div>
             </form>
           </div>
@@ -70,22 +60,10 @@
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       
-      // Basic validation
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirm_password').value;
-      
-      if (password !== confirmPassword) {
-        errorAlert.textContent = 'Passwords do not match.';
-        errorAlert.classList.remove('d-none');
-        return;
-      }
-      
       // Collect form data
       const formData = {
         username: document.getElementById('username').value,
-        email: document.getElementById('email').value,
-        password: password,
-        confirm_password: confirmPassword
+        email: document.getElementById('email').value
       };
       
       // Send create request
@@ -100,10 +78,10 @@
       .then(data => {
         if (data.success) {
           // Redirect to user list with success message
-          window.location.href = data.redirect || '/admin/users?success=User created successfully';
+          window.location.href = data.redirect || '/admin/users?success=Invitation sent successfully';
         } else {
           // Show error
-          errorAlert.textContent = data.message || 'Failed to create user';
+          errorAlert.textContent = data.message || 'Failed to send invitation';
           errorAlert.classList.remove('d-none');
         }
       })

@@ -1,5 +1,4 @@
-const db = require('../database/db');
-const logger = require('../utils/logger');
+const { supabase } = require('../database/supabase');
 
 class Activity {
   constructor(data) {
@@ -19,35 +18,39 @@ class Activity {
    */
   static async getRecent(limit = 5) {
     try {
-      // Query to get recent activities
-      const query = `
-        SELECT a.*, u.username 
-        FROM activities a
-        LEFT JOIN admins u ON a.user_id = u.id
-        ORDER BY a.created_at DESC
-        LIMIT $1
-      `;
-
-      const result = await db.query(query, [limit]);
+      const { data, error } = await supabase
+        .from('activities')
+        .select(`
+          *,
+          admins!user_id(username)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('Error fetching recent activities:', error);
+        return [];
+      }
       
       // If no activities exist yet, return empty array
-      if (result.rows.length === 0) {
+      if (!data || data.length === 0) {
         return [];
       }
 
       // Format activities with time ago
-      return result.rows.map(row => {
+      return data.map(row => {
         const timeAgo = this.getTimeAgo(row.created_at);
         return {
           id: row.id,
-          title: row.title,
-          description: row.description,
+          action: row.action,
+          entity_type: row.entity_type,
+          details: row.details,
           timeAgo,
-          username: row.username
+          username: row.admins?.username || 'Unknown'
         };
       });
     } catch (error) {
-      logger.error('Error fetching recent activities:', error);
+      console.error('Error fetching recent activities:', error);
       return [];
     }
   }
@@ -59,24 +62,29 @@ class Activity {
    */
   static async log(data) {
     try {
-      const query = `
-        INSERT INTO activities (type, title, description, user_id, related_id)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING *
-      `;
+      const activityData = {
+        user_id: data.admin_id || data.user_id || null,
+        action: data.action || 'unknown',
+        entity_type: data.entity_type || 'system',
+        entity_id: data.entity_id || null,
+        details: data.details || null,
+        created_at: new Date()
+      };
 
-      const values = [
-        data.type,
-        data.title,
-        data.description,
-        data.userId || null,
-        data.relatedId || null
-      ];
+      const { data: result, error } = await supabase
+        .from('activities')
+        .insert([activityData])
+        .select()
+        .single();
 
-      const result = await db.query(query, values);
-      return result.rows[0];
+      if (error) {
+        console.error('Error logging activity:', error);
+        return null;
+      }
+
+      return result;
     } catch (error) {
-      logger.error('Error logging activity:', error);
+      console.error('Error logging activity:', error);
       // Still return something so the app doesn't crash if activity logging fails
       return null;
     }

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set Your Password - Dynamic FP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    body {
+      background: linear-gradient(135deg, #00546c 0%, #ff5204 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .invitation-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 100%;
+      margin: 20px;
+    }
+    .password-requirements {
+      font-size: 0.9em;
+      color: #666;
+    }
+    .password-requirements ul {
+      margin: 0.5rem 0;
+      padding-left: 1.2rem;
+    }
+    .password-requirements li {
+      margin-bottom: 0.3rem;
+    }
+    .password-requirement {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+    .requirement-icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .requirement-valid {
+      background-color: #28a745;
+      color: white;
+    }
+    .requirement-invalid {
+      background-color: #dc3545;
+      color: white;
+    }
+    .logo-container {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="invitation-card">
+    <div class="card-body p-5">
+      <div class="logo-container">
+        <img src="/images/Dynamic-Orange.svg" alt="Dynamic FP" style="max-width: 200px;">
+      </div>
+      
+      <h2 class="text-center mb-4" style="color: #00546c;">Set Your Password</h2>
+      
+      <% if (error) { %>
+        <div class="alert alert-danger"><%= error %></div>
+      <% } %>
+      
+      <% if (user) { %>
+        <div class="alert alert-info">
+          <strong>Welcome, <%= user.username %>!</strong><br>
+          Please create a secure password for your account: <strong><%= user.email %></strong>
+        </div>
+        
+        <form id="setPasswordForm">
+          <input type="hidden" name="token" value="<%= token %>">
+          
+          <div class="mb-3">
+            <label for="password" class="form-label">New Password*</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Confirm Password*</label>
+            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+          </div>
+          
+          <div class="password-requirements mb-4">
+            <strong>Password Requirements:</strong>
+            <div class="mt-2">
+              <div class="password-requirement">
+                <span class="requirement-icon requirement-invalid" id="length-icon">✗</span>
+                <span id="length-text">At least 8 characters long</span>
+              </div>
+              <div class="password-requirement">
+                <span class="requirement-icon requirement-invalid" id="uppercase-icon">✗</span>
+                <span id="uppercase-text">At least one uppercase letter</span>
+              </div>
+              <div class="password-requirement">
+                <span class="requirement-icon requirement-invalid" id="lowercase-icon">✗</span>
+                <span id="lowercase-text">At least one lowercase letter</span>
+              </div>
+              <div class="password-requirement">
+                <span class="requirement-icon requirement-invalid" id="number-icon">✗</span>
+                <span id="number-text">At least one number</span>
+              </div>
+              <div class="password-requirement">
+                <span class="requirement-icon requirement-invalid" id="special-icon">✗</span>
+                <span id="special-text">At least one special character (!@#$%^&*)</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="alert alert-danger d-none" id="formError"></div>
+          
+          <button type="submit" class="btn btn-primary w-100" id="submitBtn" disabled>
+            Set Password
+          </button>
+        </form>
+        
+      <% } else { %>
+        <div class="alert alert-warning">
+          <h5>Invalid or Expired Invitation</h5>
+          <p>This invitation link is invalid or has expired. Please contact your administrator for a new invitation.</p>
+          <a href="/admin/login" class="btn btn-secondary">Return to Login</a>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const passwordInput = document.getElementById('password');
+      const confirmPasswordInput = document.getElementById('confirmPassword');
+      const submitBtn = document.getElementById('submitBtn');
+      const form = document.getElementById('setPasswordForm');
+      const errorAlert = document.getElementById('formError');
+      
+      // Password validation requirements
+      const requirements = {
+        length: { min: 8, icon: 'length-icon', text: 'length-text' },
+        uppercase: { regex: /[A-Z]/, icon: 'uppercase-icon', text: 'uppercase-text' },
+        lowercase: { regex: /[a-z]/, icon: 'lowercase-icon', text: 'lowercase-text' },
+        number: { regex: /\d/, icon: 'number-icon', text: 'number-text' },
+        special: { regex: /[!@#$%^&*]/, icon: 'special-icon', text: 'special-text' }
+      };
+      
+      // Function to validate password
+      function validatePassword(password) {
+        const results = {};
+        
+        results.length = password.length >= requirements.length.min;
+        results.uppercase = requirements.uppercase.regex.test(password);
+        results.lowercase = requirements.lowercase.regex.test(password);
+        results.number = requirements.number.regex.test(password);
+        results.special = requirements.special.regex.test(password);
+        
+        return results;
+      }
+      
+      // Function to update requirement indicators
+      function updateRequirements(password) {
+        const results = validatePassword(password);
+        
+        Object.keys(results).forEach(key => {
+          const icon = document.getElementById(requirements[key].icon);
+          const isValid = results[key];
+          
+          if (isValid) {
+            icon.className = 'requirement-icon requirement-valid';
+            icon.textContent = '✓';
+          } else {
+            icon.className = 'requirement-icon requirement-invalid';
+            icon.textContent = '✗';
+          }
+        });
+        
+        // Enable submit button only if all requirements are met and passwords match
+        const allValid = Object.values(results).every(valid => valid);
+        const passwordsMatch = password === confirmPasswordInput.value;
+        const confirmPasswordFilled = confirmPasswordInput.value.length > 0;
+        
+        submitBtn.disabled = !(allValid && passwordsMatch && confirmPasswordFilled);
+      }
+      
+      // Function to check password match
+      function checkPasswordMatch() {
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        
+        if (confirmPassword.length > 0) {
+          if (password !== confirmPassword) {
+            confirmPasswordInput.classList.add('is-invalid');
+          } else {
+            confirmPasswordInput.classList.remove('is-invalid');
+          }
+        }
+        
+        // Update submit button state
+        updateRequirements(password);
+      }
+      
+      // Event listeners
+      passwordInput.addEventListener('input', function() {
+        updateRequirements(this.value);
+      });
+      
+      confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+      
+      // Form submission
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        const token = document.querySelector('input[name="token"]').value;
+        
+        if (password !== confirmPassword) {
+          errorAlert.textContent = 'Passwords do not match';
+          errorAlert.classList.remove('d-none');
+          return;
+        }
+        
+        const validation = validatePassword(password);
+        if (!Object.values(validation).every(valid => valid)) {
+          errorAlert.textContent = 'Password does not meet all requirements';
+          errorAlert.classList.remove('d-none');
+          return;
+        }
+        
+        // Hide error alert
+        errorAlert.classList.add('d-none');
+        
+        // Disable submit button during processing
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Setting Password...';
+        
+        // Send request
+        fetch('/admin/accept-invitation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: token,
+            password: password,
+            confirmPassword: confirmPassword
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Redirect to login page with success message
+            window.location.href = data.redirect || '/admin/login?success=Password set successfully. Please log in.';
+          } else {
+            // Show error
+            errorAlert.textContent = data.message || 'Failed to set password';
+            errorAlert.classList.remove('d-none');
+            
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Set Password';
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          errorAlert.textContent = 'An unexpected error occurred';
+          errorAlert.classList.remove('d-none');
+          
+          // Re-enable submit button
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Set Password';
+        });
+      });
+    });
+  </script>
+</body>
+</html>

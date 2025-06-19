@@ -35,7 +35,31 @@ class Admin {
     return data && data.length > 0 ? data[0] : null;
   }
 
-  // Create a new admin
+  // Create a new admin with invitation token
+  static async createWithInvitation(username, email, invitationToken, invitationExpiry) {
+    const { data, error } = await supabase
+      .from('admins')
+      .insert([
+        {
+          username,
+          email,
+          invitation_token: invitationToken,
+          invitation_token_expiry: invitationExpiry,
+          is_active: false,
+          created_at: new Date()
+        }
+      ])
+      .select();
+    
+    if (error) {
+      console.error('Error creating admin with invitation:', error);
+      throw error;
+    }
+    
+    return data && data.length > 0 ? data[0] : null;
+  }
+
+  // Create a new admin (legacy method for direct password setting)
   static async create(username, email, password) {
     // Hash the password
     const saltRounds = 10;
@@ -48,6 +72,7 @@ class Admin {
           username,
           email,
           password_hash: passwordHash,
+          is_active: true,
           created_at: new Date()
         }
       ])
@@ -159,6 +184,35 @@ class Admin {
     return data && data.length > 0 ? data[0] : null;
   }
 
+  // Find admin by invitation token
+  static async findByInvitationToken(invitationToken) {
+    const now = new Date();
+    
+    const { data, error } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('invitation_token', invitationToken)
+      .gt('invitation_token_expiry', now.toISOString());
+    
+    if (error) {
+      console.error('Error finding admin by invitation token:', error);
+      return null;
+    }
+    
+    // Return null if no admin found, or the first admin if found
+    return data && data.length > 0 ? data[0] : null;
+  }
+
+  // Accept invitation and set password
+  static async acceptInvitation(adminId, newPasswordHash) {
+    const { data, error } = await supabase
+      .from('admins')
+      .update({
+        password_hash: newPasswordHash,
+        invitation_token: null,
+        invitation_token_expiry: null,
+        is_active: true
+  
   // Update last login time
   static async updateLastLogin(adminId) {
     const { data, error } = await supabase
@@ -170,7 +224,7 @@ class Admin {
       .select();
     
     if (error) {
-      console.error('Error updating last login:', error);
+      console.error('Error accepting invitation:', error);
       throw error;
     }
     

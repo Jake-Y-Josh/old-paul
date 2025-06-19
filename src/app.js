@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const ejsLayouts = require('express-ejs-layouts');
 const flash = require('connect-flash');
@@ -33,6 +34,7 @@ app.set('layout', 'layouts/main');
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -159,6 +161,19 @@ app.use((err, req, res, next) => {
     layout: false
   });
 });
+
+// Periodic cleanup of expired remember tokens (every 24 hours)
+const RememberToken = require('./models/rememberToken');
+setInterval(async () => {
+  try {
+    const deletedCount = await RememberToken.cleanupExpired();
+    if (deletedCount > 0) {
+      console.log(`Cleaned up ${deletedCount} expired remember tokens`);
+    }
+  } catch (error) {
+    console.error('Error in remember token cleanup:', error);
+  }
+}, 24 * 60 * 60 * 1000); // 24 hours
 
 // Start the server if not running in Vercel environment
 if (!process.env.VERCEL) {
