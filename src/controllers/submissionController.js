@@ -81,13 +81,43 @@ exports.getRecentSubmissions = async (req, res) => {
  */
 const deleteSubmission = async (req, res) => {
   try {
+    console.log('Delete submission request:', {
+      id: req.params.id,
+      method: req.method,
+      headers: req.headers,
+      xhr: req.xhr
+    });
+    
     const { id } = req.params;
-    await Submission.delete(id);
+    const result = await Submission.delete(id);
+    
+    if (!result) {
+      console.log('Submission not found or already deleted:', id);
+      // Check if this is an AJAX request
+      if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+        return res.status(404).json({ success: false, message: 'Submission not found' });
+      }
+      req.flash('error', 'Submission not found');
+      return res.redirect('/admin/submissions');
+    }
+    
+    console.log('Submission deleted successfully:', id);
+    
+    // Check if this is an AJAX request
+    if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      return res.json({ success: true, message: 'Submission deleted successfully' });
+    }
     
     req.flash('success', 'Submission deleted successfully');
     res.redirect('/admin/submissions');
   } catch (error) {
     console.error('Error deleting submission:', error);
+    
+    // Check if this is an AJAX request
+    if (req.xhr || req.headers.accept.indexOf('json') > -1 || req.headers['x-requested-with'] === 'XMLHttpRequest') {
+      return res.status(500).json({ success: false, message: 'Failed to delete submission: ' + error.message });
+    }
+    
     req.flash('error', 'Failed to delete submission');
     res.redirect('/admin/submissions');
   }

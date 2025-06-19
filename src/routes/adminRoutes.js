@@ -51,10 +51,7 @@ router.post('/reset-password/:token', isNotAuthenticated, adminController.resetP
 // Dashboard
 router.get('/dashboard', isAuthenticated, adminController.dashboard);
 
-// Submissions routes
-router.get('/submissions', isAuthenticated, submissionController.submissionsPage);
-router.get('/submissions/:id', isAuthenticated, submissionController.viewSubmission);
-router.delete('/submissions/:id/delete', isAuthenticated, submissionController.deleteSubmission);
+// Submissions routes are handled by submissionRoutes.js (mounted at /admin/submissions in app.js)
 
 // Form management
 router.get('/forms', isAuthenticated, formController.listForms);
