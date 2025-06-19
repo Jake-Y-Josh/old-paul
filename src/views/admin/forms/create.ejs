@@ -794,17 +794,19 @@
   }
   
   .add-between-hint {
-    display: none;
+    display: block;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 2;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
   }
   
   .add-question-between:hover .add-between-hint,
   .add-question-between:focus-within .add-between-hint {
-    display: block;
+    opacity: 1;
   }
   
   .add-question-between:hover::before {

@@ -63,7 +63,7 @@ exports.listClients = async (req, res) => {
 exports.showUploadForm = (req, res) => {
   res.render('admin/clients/upload', {
     title: 'Import Clients',
-    username: req.session.user.username
+    username: req.session.user ? req.session.user.username : req.session.username
   });
 };
 
