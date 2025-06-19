@@ -357,12 +357,17 @@
     
     if (updateClientBtn) {
       updateClientBtn.addEventListener('click', async () => {
+        console.log('Update button clicked');
+        editClientError.classList.add('d-none');
+        
         const formData = new FormData(editClientForm);
         const clientId = formData.get('id');
         const clientData = {
           name: formData.get('name'),
           email: formData.get('email')
         };
+        
+        console.log('Updating client:', clientId, clientData);
         
         try {
           const response = await fetch(`/admin/clients/${clientId}`, {
@@ -373,7 +378,9 @@
             body: JSON.stringify(clientData)
           });
           
+          console.log('Response status:', response.status);
           const result = await response.json();
+          console.log('Response data:', result);
           
           if (result.success) {
             editClientModal.hide();

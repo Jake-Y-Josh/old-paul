@@ -8,126 +8,89 @@ const logger = require('./logger');
  * @param {string} clientIdField - The name of the column that contains the client ID
  * @returns {Promise<Array>} - Array of client objects
  */
-const processClientExcel = (filePath, clientIdField = 'Client ID') => {
+const processClientExcel = (filePath, clientIdField = 'Client Reference') => {
   return new Promise((resolve, reject) => {
     try {
       // Read the Excel file
+      logger.info(`Reading Excel file: ${filePath}`);
       const workbook = XLSX.readFile(filePath);
       
-      // Get the first sheet
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        return reject(new Error('Excel file has no sheets'));
+      }
+      
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       
-      // Convert sheet to JSON
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      // Convert to JSON - this will use the first row as headers
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
       
-      // Check if there's any data
-      if (!jsonData || jsonData.length === 0) {
+      logger.info(`Found ${jsonData.length} rows in Excel file`);
+      
+      if (jsonData.length === 0) {
         return resolve([]);
       }
       
-      // Process rows into client objects
+      // Log the first row to see column names
+      logger.info('First row columns:', Object.keys(jsonData[0]));
+      
       const clients = [];
-      const processedClientIds = new Set();
       
       for (const row of jsonData) {
-        let name = '';
-        let email = '';
+        // Get name by combining Client Forename and Client Surname
+        const forename = row['Client Forename'] || '';
+        const surname = row['Client Surname'] || '';
+        const name = `${forename} ${surname}`.trim();
         
-        // Extract name from various possible fields
-        if (row.name || row.Name || row.NAME) {
-          name = row.name || row.Name || row.NAME;
-        } else if (row['Client Forename'] && row['Client Surname']) {
-          // Combine forename and surname
-          name = `${row['Client Forename']} ${row['Client Surname']}`;
-        } else {
-          // Look for any field that might contain the name
-          const forenameField = Object.keys(row).find(key => 
-            key.toLowerCase().includes('forename')
-          );
-          
-          const surnameField = Object.keys(row).find(key => 
-            key.toLowerCase().includes('surname')
-          );
-          
-          if (forenameField && surnameField) {
-            name = `${row[forenameField]} ${row[surnameField]}`;
-          } else {
-            const nameField = Object.keys(row).find(key => 
-              key.toLowerCase().includes('name') && !key.toLowerCase().includes('email')
-            );
-            
-            if (nameField) {
-              name = row[nameField];
-            } else {
-              logger.warn('Missing name in row:', row);
-              continue;
-            }
-          }
-        }
+        // Get email from Client Email column
+        const email = row['Client Email'] || '';
         
-        // Extract email from various possible fields
-        if (row.email || row.Email || row.EMAIL) {
-          email = (row.email || row.Email || row.EMAIL || '').toLowerCase();
-        } else if (row['Client Email']) {
-          email = row['Client Email'].toLowerCase();
-        } else {
-          // Look for any field that might contain the email
-          const emailField = Object.keys(row).find(key => 
-            key.toLowerCase().includes('email')
-          );
-          
-          if (emailField) {
-            email = row[emailField].toLowerCase();
-          } else {
-            logger.warn('Missing email in row:', row);
-            continue;
-          }
-        }
+        // Get client reference
+        const clientReference = row[clientIdField] || '';
         
-        // If email is not valid, skip this row
-        if (!email || !email.includes('@')) {
-          logger.warn('Invalid email in row:', row);
+        // Skip if no name or email
+        if (!name || !email) {
+          logger.warn(`Skipping row - missing name or email. Name: "${name}", Email: "${email}"`);
           continue;
         }
         
-        // Get client ID
-        let clientId = null;
-        if (clientIdField && clientIdField.trim() !== '') {
-          clientId = row[clientIdField] || row[clientIdField.toLowerCase()] || row[clientIdField.toUpperCase()];
-        }
-        
-        // Skip if this client ID has already been processed in this import
-        if (clientId && processedClientIds.has(clientId.toString())) {
-          logger.info(`Skipping duplicate client ID within import: ${clientId}`);
+        // Skip if email is invalid
+        if (!email.includes('@')) {
+          logger.warn(`Skipping row - invalid email: "${email}" for ${name}`);
           continue;
         }
         
-        // Process row data into a client object
+        // Create client object
         const client = {
-          name: name.trim(),
-          email: email.trim(),
-          extraData: {}
+          name: name,
+          email: email.toLowerCase().trim(),
+          enablecrm_id: clientReference ? clientReference.toString().trim() : null,
+          extra_data: {}
         };
         
-        // Store client ID in extraData if present
-        if (clientId) {
-          client.extraData.clientId = clientId.toString();
-          processedClientIds.add(clientId.toString());
+        // Store client reference in extra_data too
+        if (clientReference) {
+          client.extra_data.clientId = clientReference.toString().trim();
         }
         
-        // Add any additional columns as extra data
+        // Add all other columns to extra_data
         Object.keys(row).forEach(key => {
-          // Skip the fields we've already processed directly
-          if (key !== 'name' && key !== 'Name' && key !== 'NAME') {
-            client.extraData[key] = row[key];
+          if (key !== 'Client Forename' && 
+              key !== 'Client Surname' && 
+              key !== 'Client Email' && 
+              key !== clientIdField) {
+            client.extra_data[key] = row[key];
           }
         });
         
         clients.push(client);
       }
       
-      logger.info(`Processed ${clients.length} clients from Excel file`);
+      logger.info(`Successfully processed ${clients.length} clients from Excel`);
+      if (clients.length > 0) {
+        logger.info('Example client:', clients[0]);
+      }
+      
       resolve(clients);
     } catch (error) {
       logger.error('Error processing Excel file:', error);
@@ -144,12 +107,27 @@ const processClientExcel = (filePath, clientIdField = 'Client ID') => {
 const validateExcelFormat = (filePath) => {
   return new Promise((resolve, reject) => {
     try {
-      // Read the Excel file
-      const workbook = XLSX.readFile(filePath);
+      // Read the Excel file with error handling
+      let workbook;
+      try {
+        workbook = XLSX.readFile(filePath);
+      } catch (readError) {
+        logger.error('Failed to read Excel file for validation:', readError);
+        return resolve(false); // Invalid format
+      }
+      
+      // Check if workbook has sheets
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        return resolve(false);
+      }
       
       // Get the first sheet
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      
+      if (!worksheet) {
+        return resolve(false);
+      }
       
       // Convert first row to JSON
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -161,32 +139,36 @@ const validateExcelFormat = (filePath) => {
       // Get headers from the first row
       const headers = jsonData[0];
       
-      // Check if required columns exist (looking for various name and email formats)
-      const hasName = headers.some(header => 
-        typeof header === 'string' && 
-        (
-          header.toLowerCase() === 'name' || 
-          header.toLowerCase() === 'client forename' ||
-          header.toLowerCase() === 'client surname' ||
-          header.toLowerCase().includes('name') ||
-          header.toLowerCase().includes('forename') ||
-          header.toLowerCase().includes('surname')
-        )
-      );
+      // The problem is the headers might be in a different format
+      // Let's properly check for the columns we need
+      let hasName = false;
+      let hasEmail = false;
       
-      const hasEmail = headers.some(header => 
-        typeof header === 'string' && 
-        (
-          header.toLowerCase() === 'email' || 
-          header.toLowerCase() === 'client email' ||
-          header.toLowerCase().includes('email')
-        )
-      );
+      // Check if headers is an array (from header: 1 option)
+      if (Array.isArray(headers)) {
+        // Look for the exact column names
+        hasName = headers.includes('Client Forename') || headers.includes('Client Surname');
+        hasEmail = headers.includes('Client Email');
+        
+        logger.info('Checking array headers - hasName:', hasName, 'hasEmail:', hasEmail);
+      } else {
+        logger.error('Headers is not an array:', typeof headers);
+      }
       
       // Log the headers for debugging
-      logger.info('Excel headers found:', headers);
-      logger.info('Has name column:', hasName);
-      logger.info('Has email column:', hasEmail);
+      logger.info('Excel validation - Total headers:', headers.length);
+      logger.info('Excel validation - First 10 headers:', headers.slice(0, 10));
+      logger.info('Excel validation - Has name column:', hasName);
+      logger.info('Excel validation - Has email column:', hasEmail);
+      
+      // For debugging, let's check specific headers
+      const hasClientForename = headers.includes('Client Forename');
+      const hasClientSurname = headers.includes('Client Surname');
+      const hasClientEmail = headers.includes('Client Email');
+      
+      logger.info('Has "Client Forename":', hasClientForename);
+      logger.info('Has "Client Surname":', hasClientSurname);
+      logger.info('Has "Client Email":', hasClientEmail);
       
       resolve(hasName && hasEmail);
     } catch (error) {
