@@ -11,6 +11,11 @@
   <div class="card">
     <div class="card-body">
       <% if (logs && logs.length > 0) { %>
+        <div class="mb-3">
+          <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" style="display: none;">
+            <i class="fas fa-trash"></i> Delete Selected
+          </button>
+        </div>
         <div class="table-responsive">
           <table class="table table-hover">
             <thead>
@@ -33,6 +38,9 @@
                 if (!recipientEmail) return;
               %>
                 <tr>
+                  <td>
+                    <input type="checkbox" class="form-check-input email-checkbox" value="<%= log.id %>">
+                  </td>
                   <td>
                     <%= recipientEmail %>
                     <% if (log.client_name) { %>
@@ -96,7 +104,12 @@
                             data-opened="<%= log.opened ? 'Yes' + (log.opened_at ? ' (' + new Date(log.opened_at).toLocaleString() + ')' : '') : 'No' %>"
                             data-clicked="<%= log.clicked ? 'Yes' + (log.clicked_at ? ' (' + new Date(log.clicked_at).toLocaleString() + ')' : '') : 'No' %>"
                             data-error="<%= log.error || 'None' %>">
-                      <i class="fas fa-eye"></i> Details
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-email-log" 
+                            data-id="<%= log.id %>"
+                            data-recipient="<%= recipientEmail %>">
+                      <i class="fas fa-trash"></i>
                     </button>
                   </td>
                 </tr>
@@ -209,6 +222,96 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('modal-opened').textContent = data.opened;
       document.getElementById('modal-clicked').textContent = data.clicked;
       document.getElementById('modal-error').textContent = data.error;
+    });
+  }
+  
+  // Handle select all checkbox
+  const selectAllCheckbox = document.getElementById('selectAll');
+  const emailCheckboxes = document.querySelectorAll('.email-checkbox');
+  const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+  
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      emailCheckboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+      updateDeleteButtonVisibility();
+    });
+  }
+  
+  // Handle individual checkboxes
+  emailCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', updateDeleteButtonVisibility);
+  });
+  
+  function updateDeleteButtonVisibility() {
+    const checkedBoxes = document.querySelectorAll('.email-checkbox:checked');
+    if (deleteSelectedBtn) {
+      deleteSelectedBtn.style.display = checkedBoxes.length > 0 ? 'inline-block' : 'none';
+    }
+  }
+  
+  // Handle single delete
+  document.querySelectorAll('.delete-email-log').forEach(button => {
+    button.addEventListener('click', function() {
+      const id = this.getAttribute('data-id');
+      const recipient = this.getAttribute('data-recipient');
+      
+      if (confirm(`Are you sure you want to delete the email log for ${recipient}?`)) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/emails/logs/${id}/delete`;
+        
+        // Add CSRF token if needed
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = '_csrf';
+          input.value = csrfToken.getAttribute('content');
+          form.appendChild(input);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
+  });
+  
+  // Handle bulk delete
+  if (deleteSelectedBtn) {
+    deleteSelectedBtn.addEventListener('click', function() {
+      const checkedBoxes = document.querySelectorAll('.email-checkbox:checked');
+      const ids = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+      
+      if (ids.length === 0) return;
+      
+      const message = ids.length === 1 
+        ? 'Are you sure you want to delete 1 email log?' 
+        : `Are you sure you want to delete ${ids.length} email logs?`;
+      
+      if (confirm(message)) {
+        fetch('/admin/emails/logs/delete-multiple', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ids })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            window.location.reload();
+          } else {
+            alert(data.message || 'Error deleting email logs');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error deleting email logs');
+        });
+      }
     });
   }
 });
