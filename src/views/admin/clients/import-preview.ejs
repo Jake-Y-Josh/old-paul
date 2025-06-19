@@ -1,0 +1,243 @@
+<%- include('../../partials/admin-page-header', {
+  pageTitle: 'Import Preview',
+  pageDescription: 'Review clients to be imported',
+  breadcrumbs: [
+    { label: 'Clients', href: '/admin/clients' },
+    { label: 'Import', href: '/admin/clients/upload' },
+    { label: 'Preview' }
+  ]
+}) %>
+
+<div class="container-fluid px-4">
+  <div class="row">
+    <div class="col-12">
+      <!-- Summary Card -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Import Summary</h5>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-3">
+              <div class="metric-box">
+                <h3 class="text-success"><%= preview.newClients.length %></h3>
+                <p class="text-muted mb-0">New Clients</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="metric-box">
+                <h3 class="text-warning"><%= preview.existingClients.length %></h3>
+                <p class="text-muted mb-0">Existing Clients</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="metric-box">
+                <h3 class="text-danger"><%= preview.duplicatesInFile.length %></h3>
+                <p class="text-muted mb-0">Duplicates in File</p>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="metric-box">
+                <h3 class="text-info"><%= preview.totalCount %></h3>
+                <p class="text-muted mb-0">Total Records</p>
+              </div>
+            </div>
+          </div>
+          
+          <% if (preview.updateExisting) { %>
+            <div class="alert alert-info mt-3 mb-0">
+              <i class="fas fa-info-circle me-2"></i>
+              <strong>Update Mode:</strong> Existing clients will be updated with new data from the file.
+            </div>
+          <% } else { %>
+            <div class="alert alert-warning mt-3 mb-0">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <strong>Skip Mode:</strong> Existing clients will be skipped and not updated.
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- New Clients -->
+      <% if (preview.newClients.length > 0) { %>
+        <div class="card mb-4">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-user-plus me-2"></i>New Clients to Import (<%= preview.newClients.length %>)
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Client ID</th>
+                    <th>Additional Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% preview.newClients.slice(0, 10).forEach(client => { %>
+                    <tr>
+                      <td><%= client.name %></td>
+                      <td><%= client.email %></td>
+                      <td><%= client.enablecrm_id || '-' %></td>
+                      <td>
+                        <% if (client.extra_data && Object.keys(client.extra_data).length > 0) { %>
+                          <small class="text-muted"><%= Object.keys(client.extra_data).length %> fields</small>
+                        <% } else { %>
+                          <small class="text-muted">-</small>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }); %>
+                  <% if (preview.newClients.length > 10) { %>
+                    <tr>
+                      <td colspan="4" class="text-center text-muted">
+                        ... and <%= preview.newClients.length - 10 %> more
+                      </td>
+                    </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Existing Clients -->
+      <% if (preview.existingClients.length > 0) { %>
+        <div class="card mb-4">
+          <div class="card-header bg-warning">
+            <h5 class="mb-0">
+              <i class="fas fa-user-check me-2"></i>Existing Clients (<%= preview.existingClients.length %>)
+              <% if (preview.updateExisting) { %>
+                <span class="badge bg-dark ms-2">Will be updated</span>
+              <% } else { %>
+                <span class="badge bg-secondary ms-2">Will be skipped</span>
+              <% } %>
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Current Name</th>
+                    <th>New Name</th>
+                    <th>Email</th>
+                    <th>Current ID</th>
+                    <th>New ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% preview.existingClients.slice(0, 10).forEach(client => { %>
+                    <tr>
+                      <td>
+                        <%= client.existing.name %>
+                      </td>
+                      <td>
+                        <% if (client.name !== client.existing.name) { %>
+                          <span class="text-primary"><%= client.name %></span>
+                        <% } else { %>
+                          <span class="text-muted">No change</span>
+                        <% } %>
+                      </td>
+                      <td><%= client.email %></td>
+                      <td><%= client.existing.enablecrm_id || '-' %></td>
+                      <td>
+                        <% if (client.enablecrm_id && client.enablecrm_id !== client.existing.enablecrm_id) { %>
+                          <span class="text-primary"><%= client.enablecrm_id %></span>
+                        <% } else { %>
+                          <span class="text-muted">No change</span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }); %>
+                  <% if (preview.existingClients.length > 10) { %>
+                    <tr>
+                      <td colspan="5" class="text-center text-muted">
+                        ... and <%= preview.existingClients.length - 10 %> more
+                      </td>
+                    </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Duplicates in File -->
+      <% if (preview.duplicatesInFile.length > 0) { %>
+        <div class="card mb-4">
+          <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-exclamation-circle me-2"></i>Duplicates in File (<%= preview.duplicatesInFile.length %>)
+              <span class="badge bg-dark ms-2">Will be ignored</span>
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Client ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% preview.duplicatesInFile.forEach(client => { %>
+                    <tr>
+                      <td><%= client.name %></td>
+                      <td><%= client.email %></td>
+                      <td><%= client.enablecrm_id || '-' %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Action Buttons -->
+      <div class="card">
+        <div class="card-body">
+          <form method="POST" action="/admin/clients/import-confirm" class="d-flex justify-content-between">
+            <button type="submit" name="action" value="cancel" class="btn btn-outline-secondary">
+              <i class="fas fa-times me-2"></i>Cancel Import
+            </button>
+            <button type="submit" name="action" value="confirm" class="btn btn-primary">
+              <i class="fas fa-check me-2"></i>
+              Confirm Import 
+              <% if (preview.updateExisting) { %>
+                (<%= preview.newClients.length + preview.existingClients.length %> clients)
+              <% } else { %>
+                (<%= preview.newClients.length %> new clients)
+              <% } %>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .metric-box {
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+  }
+  .metric-box h3 {
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  .table-responsive {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+</style>

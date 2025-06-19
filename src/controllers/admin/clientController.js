@@ -231,15 +231,48 @@ exports.uploadClients = async (req, res) => {
       return res.redirect('/admin/clients/upload');
     }
     
-    // Insert or update the clients in the database
-    const results = await Client.bulkUpsert(clients);
+    // Check for existing clients
+    const existingClients = [];
+    const newClients = [];
+    const duplicatesInFile = [];
+    const emailsSeen = new Set();
     
-    // Set success message
-    req.flash('success', `Successfully imported ${results.length} clients. ` +
-      `${results.filter(r => r.action === 'created').length} created, ` +
-      `${results.filter(r => r.action === 'updated').length} updated.`);
+    for (const client of clients) {
+      // Check for duplicates within the file
+      if (emailsSeen.has(client.email)) {
+        duplicatesInFile.push(client);
+        continue;
+      }
+      emailsSeen.add(client.email);
+      
+      // Check if client exists in database
+      const existing = await Client.findByEmail(client.email);
+      if (existing) {
+        existingClients.push({
+          ...client,
+          existing: {
+            id: existing.id,
+            name: existing.name,
+            email: existing.email,
+            enablecrm_id: existing.enablecrm_id
+          }
+        });
+      } else {
+        newClients.push(client);
+      }
+    }
     
-    res.redirect('/admin/clients');
+    // Store the parsed data in session for preview
+    req.session.importPreview = {
+      newClients,
+      existingClients,
+      duplicatesInFile,
+      updateExisting,
+      totalCount: clients.length
+    };
+    
+    // Redirect to preview page
+    res.redirect('/admin/clients/import-preview');
   } catch (error) {
     logger.error('File upload error:', error);
     
@@ -254,6 +287,82 @@ exports.uploadClients = async (req, res) => {
     
     req.flash('error', `Failed to process file: ${error.message}`);
     res.redirect('/admin/clients/upload');
+  }
+};
+
+// Show import preview
+exports.showImportPreview = async (req, res) => {
+  try {
+    const preview = req.session.importPreview;
+    
+    if (!preview) {
+      req.flash('error', 'No import data found. Please upload a file first.');
+      return res.redirect('/admin/clients/upload');
+    }
+    
+    res.render('admin/clients/import-preview', {
+      title: 'Import Preview',
+      preview,
+      layout: 'layouts/admin'
+    });
+  } catch (error) {
+    logger.error('Error showing import preview:', error);
+    req.flash('error', 'Failed to display import preview');
+    res.redirect('/admin/clients/upload');
+  }
+};
+
+// Confirm and process the import
+exports.confirmImport = async (req, res) => {
+  try {
+    const preview = req.session.importPreview;
+    
+    if (!preview) {
+      req.flash('error', 'No import data found. Please upload a file first.');
+      return res.redirect('/admin/clients/upload');
+    }
+    
+    const { action } = req.body;
+    
+    if (action === 'cancel') {
+      // Clear the preview data
+      delete req.session.importPreview;
+      req.flash('info', 'Import cancelled');
+      return res.redirect('/admin/clients/upload');
+    }
+    
+    // Process the import
+    const clientsToImport = [...preview.newClients];
+    
+    // Add existing clients if update flag is set
+    if (preview.updateExisting) {
+      clientsToImport.push(...preview.existingClients);
+    }
+    
+    // Insert or update the clients in the database
+    const results = await Client.bulkUpsert(clientsToImport);
+    
+    // Clear the preview data
+    delete req.session.importPreview;
+    
+    // Set success message
+    const created = results.filter(r => r.action === 'created').length;
+    const updated = results.filter(r => r.action === 'updated').length;
+    const skipped = preview.existingClients.length - updated;
+    
+    let message = `Import completed: ${created} clients created`;
+    if (updated > 0) message += `, ${updated} updated`;
+    if (skipped > 0 && !preview.updateExisting) message += `, ${skipped} skipped (already exist)`;
+    if (preview.duplicatesInFile.length > 0) {
+      message += `. ${preview.duplicatesInFile.length} duplicates in file were ignored`;
+    }
+    
+    req.flash('success', message);
+    res.redirect('/admin/clients');
+  } catch (error) {
+    logger.error('Error confirming import:', error);
+    req.flash('error', `Import failed: ${error.message}`);
+    res.redirect('/admin/clients/import-preview');
   }
 };
 

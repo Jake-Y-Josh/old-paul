@@ -70,6 +70,36 @@ const updateEmailSettings = async (req, res) => {
   }
 };
 
+// Update main settings (EMAIL_FROM, EMAIL_FROM_NAME, EMAIL_REPLY_TO, NOTIFICATION_EMAILS)
+const updateSettings = async (req, res) => {
+  try {
+    const { settings } = req.body;
+    
+    if (!settings) {
+      return res.redirect('/admin/settings?error=No settings provided');
+    }
+    
+    // Update each setting in the database
+    const settingsToUpdate = [
+      'EMAIL_FROM',
+      'EMAIL_FROM_NAME', 
+      'EMAIL_REPLY_TO',
+      'NOTIFICATION_EMAILS'
+    ];
+    
+    for (const key of settingsToUpdate) {
+      if (settings[key] !== undefined) {
+        await Settings.set(key, settings[key], Settings.getDescriptionForKey(key));
+      }
+    }
+    
+    res.redirect('/admin/settings?success=Settings updated successfully');
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    res.redirect('/admin/settings?error=' + encodeURIComponent('Failed to update settings: ' + error.message));
+  }
+};
+
 // Test email configuration
 const testEmailConfig = async (req, res) => {
   try {
@@ -103,6 +133,7 @@ const testEmailConfig = async (req, res) => {
 
 module.exports = {
   showSettings,
+  updateSettings,
   updateEmailSettings,
   testEmailConfig
 }; 
