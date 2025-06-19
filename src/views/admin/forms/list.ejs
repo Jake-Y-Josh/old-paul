@@ -16,19 +16,6 @@
 }) %>
 
 <div class="container-fluid px-4">
-  <!-- Success/Error Messages -->
-  <% if (success) { %>
-    <div class="alert alert-success">
-      <p class="mb-0"><%= success %></p>
-    </div>
-  <% } %>
-
-  <% if (error) { %>
-    <div class="alert alert-danger">
-      <p class="mb-0"><%= error %></p>
-    </div>
-  <% } %>
-
   <div class="card">
     <div class="card-body">
       <% if (forms && forms.length > 0) { %>

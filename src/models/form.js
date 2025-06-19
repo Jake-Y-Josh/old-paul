@@ -49,6 +49,14 @@ class Form {
   }
 
   /**
+   * Alias for getAll to maintain compatibility
+   * @returns {Promise<Array>} Array of forms
+   */
+  static async findAll() {
+    return this.getAll();
+  }
+
+  /**
    * Get a form by ID
    * @param {number} id - Form ID
    * @returns {Promise<Object>} Form data

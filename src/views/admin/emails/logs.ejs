@@ -8,19 +8,6 @@
 }) %>
 
 <div class="container-fluid px-4">
-  <!-- Success/Error Messages -->
-  <% if (locals.success && locals.success.length > 0) { %>
-    <div class="alert alert-success">
-      <i class="fas fa-check-circle me-2"></i> <%= locals.success %>
-    </div>
-  <% } %>
-  
-  <% if (locals.error && locals.error.length > 0) { %>
-    <div class="alert alert-danger">
-      <i class="fas fa-exclamation-circle me-2"></i> <%= locals.error %>
-    </div>
-  <% } %>
-
   <div class="card">
     <div class="card-body">
       <% if (logs && logs.length > 0) { %>
