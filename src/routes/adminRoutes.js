@@ -75,6 +75,8 @@ router.get('/emails/send', isAuthenticated, emailController.selectForm);
 router.post('/emails/send', isAuthenticated, emailController.sendEmails);
 router.get('/emails/logs', isAuthenticated, emailController.viewEmailLogs);
 router.get('/emails/recent', isAuthenticated, emailController.getRecentEmails);
+router.post('/emails/logs/:id/delete', isAuthenticated, emailController.deleteEmailLog);
+router.post('/emails/logs/delete-multiple', isAuthenticated, emailController.deleteMultipleEmailLogs);
 
 // Webhook endpoint for email tracking events (no auth needed for external service)
 router.post('/emails/webhook', emailController.handleResendWebhook);

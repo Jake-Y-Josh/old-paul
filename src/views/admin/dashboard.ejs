@@ -265,7 +265,7 @@ var activityData = typeof locals.recentActivity !== 'undefined' ? locals.recentA
                   <div class="list-group-item email-item py-1 px-3">
                     <div class="d-flex w-100 justify-content-between">
                       <div class="text-truncate" style="max-width: 70%;">
-                        <span class="fw-medium small"><%= email.client_name || email.to_email || 'Unknown' %></span>
+                        <span class="fw-medium small"><%= email.client_name || email.to_email || email.client_email || 'No recipient' %></span>
                         <% if (email.form_title) { %>
                           <span class="text-muted small"> - <%= email.form_title.substring(0, 20) %><%= email.form_title.length > 20 ? '...' : '' %></span>
                         <% } %>
@@ -283,7 +283,30 @@ var activityData = typeof locals.recentActivity !== 'undefined' ? locals.recentA
                           <span class="badge bg-secondary">Not Read</span>
                         <% } %>
                         <% if (email.type) { %>
-                          <span class="badge theme-light-badge"><%= email.type %></span>
+                          <%
+                            // Format email type to proper English
+                            let formattedType = email.type;
+                            switch(formattedType) {
+                              case 'feedback_request':
+                                formattedType = 'Feedback Request';
+                                break;
+                              case 'submission_notification':
+                                formattedType = 'Submission Notification';
+                                break;
+                              case 'reminder':
+                                formattedType = 'Reminder';
+                                break;
+                              case 'password_reset':
+                                formattedType = 'Password Reset';
+                                break;
+                              default:
+                                // Convert snake_case to Title Case
+                                formattedType = formattedType.split('_').map(word => 
+                                  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                                ).join(' ');
+                            }
+                          %>
+                          <span class="badge theme-light-badge"><%= formattedType %></span>
                         <% } %>
                       </div>
                       

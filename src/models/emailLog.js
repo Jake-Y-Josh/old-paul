@@ -287,6 +287,15 @@ class EmailLog {
   }
 
   /**
+   * Get recent email logs (alias for getRecentWithDetails)
+   * @param {number} limit - Maximum number of logs to return
+   * @returns {Promise<Array>} Recent email logs
+   */
+  static async getRecent(limit = 5) {
+    return this.getRecentWithDetails(limit);
+  }
+
+  /**
    * Get recent email logs with client and form details
    * @param {number} limit - Maximum number of logs to return
    * @returns {Promise<Array>} Recent email logs with details
@@ -306,7 +315,14 @@ class EmailLog {
       `;
       
       const result = await db.query(query, [limit]);
-      return result.rows;
+      
+      // Process the results to ensure to_email is set
+      return result.rows.map(log => {
+        if (!log.to_email && log.client_email) {
+          log.to_email = log.client_email;
+        }
+        return log;
+      });
     } catch (error) {
       console.error('[ERROR] Error getting recent email logs with details:', error);
       return [];
@@ -361,6 +377,45 @@ class EmailLog {
       return parseInt(result.rows[0].count, 10);
     } catch (error) {
       console.error('[ERROR] Error counting clicked emails:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Delete an email log by ID
+   * @param {number} id - Email log ID to delete
+   * @returns {Promise<boolean>} Success status
+   */
+  static async delete(id) {
+    try {
+      const result = await db.query(
+        'DELETE FROM email_logs WHERE id = $1 RETURNING id',
+        [id]
+      );
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('[ERROR] Error deleting email log:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete multiple email logs by IDs
+   * @param {Array<number>} ids - Array of email log IDs to delete
+   * @returns {Promise<number>} Number of deleted records
+   */
+  static async deleteMultiple(ids) {
+    try {
+      if (!ids || ids.length === 0) return 0;
+      
+      const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+      const result = await db.query(
+        `DELETE FROM email_logs WHERE id IN (${placeholders}) RETURNING id`,
+        ids
+      );
+      return result.rowCount;
+    } catch (error) {
+      console.error('[ERROR] Error deleting multiple email logs:', error);
       return 0;
     }
   }

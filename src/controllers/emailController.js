@@ -85,7 +85,9 @@ const sendEmails = async (req, res) => {
         to: client.email,
         clientName: client.name,
         formTitle: form.title,
-        formLink: formLink
+        formLink: formLink,
+        clientId: client.id,
+        formId: form.id
       });
       
       results.push({
@@ -293,6 +295,54 @@ const checkWebhookSetup = (req, res, next) => {
   next();
 };
 
+// Delete a single email log
+const deleteEmailLog = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = await EmailLog.delete(id);
+    
+    if (success) {
+      req.flash('success', 'Email log deleted successfully');
+    } else {
+      req.flash('error', 'Failed to delete email log');
+    }
+    
+    res.redirect('/admin/emails/logs');
+  } catch (error) {
+    console.error('Error deleting email log:', error);
+    req.flash('error', 'Error deleting email log');
+    res.redirect('/admin/emails/logs');
+  }
+};
+
+// Delete multiple email logs
+const deleteMultipleEmailLogs = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No email logs selected for deletion'
+      });
+    }
+    
+    const deletedCount = await EmailLog.deleteMultiple(ids);
+    
+    res.json({
+      success: true,
+      message: `${deletedCount} email log(s) deleted successfully`,
+      deletedCount
+    });
+  } catch (error) {
+    console.error('Error deleting multiple email logs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting email logs'
+    });
+  }
+};
+
 /**
  * Controller exports
  */
@@ -302,5 +352,7 @@ module.exports = {
   viewEmailLogs,
   handleResendWebhook,
   getRecentEmails,
-  checkWebhookSetup
+  checkWebhookSetup,
+  deleteEmailLog,
+  deleteMultipleEmailLogs
 }; 

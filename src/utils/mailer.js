@@ -1,11 +1,5 @@
 const nodemailer = require('nodemailer');
 const EmailLog = require('../models/emailLog');
-let Email;
-try {
-  Email = require('../models/email');
-} catch (e) {
-  // Email model not available, will use EmailLog
-}
 let Settings;
 try {
   Settings = require('../models/settings');
@@ -95,15 +89,8 @@ const logEmail = async (data) => {
     
     console.log('[EMAIL LOGGING] Logging email with message ID:', logData.message_id);
     
-    // Use either Email or EmailLog model
-    let result;
-    if (typeof Email !== 'undefined' && Email.create) {
-      result = await Email.create(logData);
-    } else if (typeof EmailLog !== 'undefined' && EmailLog.create) {
-      result = await EmailLog.create(logData);
-    } else {
-      throw new Error('No valid logging model available');
-    }
+    // Use EmailLog model
+    const result = await EmailLog.create(logData);
     
     console.log('[EMAIL LOGGING] Email logged successfully:', {
       to: logData.to_email,
@@ -214,7 +201,7 @@ function generateSignature(signature) {
  */
 const sendFeedbackFormEmail = async (options) => {
   try {
-    const { to, clientName, formTitle, formLink } = options;
+    const { to, clientName, formTitle, formLink, clientId, formId } = options;
     
     // Get the latest email config (from database or env vars)
     const config = await getEmailConfig();
@@ -263,6 +250,8 @@ const sendFeedbackFormEmail = async (options) => {
     await logEmail({
       recipient: to,
       to_email: to,
+      client_id: clientId,
+      form_id: formId,
       subject: `Feedback Request - ${formTitle}`,
       message_id: messageId,
       status: success ? 'sent' : 'failed',
@@ -277,6 +266,8 @@ const sendFeedbackFormEmail = async (options) => {
     await logEmail({
       recipient: options.to,
       to_email: options.to,
+      client_id: options.clientId,
+      form_id: options.formId,
       subject: `Feedback Request - ${options.formTitle}`,
       status: 'failed',
       error: error.message,
@@ -393,6 +384,8 @@ const sendPasswordResetEmail = async (options) => {
  * @returns {Promise<Object>} - Email send result
  */
 const sendSubmissionNotificationEmail = async (options) => {
+  let recipients = [];
+  
   try {
     const { clientName, formTitle, submissionId } = options;
     
@@ -409,7 +402,7 @@ const sendSubmissionNotificationEmail = async (options) => {
     }
     
     // Parse multiple email addresses
-    const recipients = notificationEmails.split(',').map(email => email.trim()).filter(email => email);
+    recipients = notificationEmails.split(',').map(email => email.trim()).filter(email => email);
     
     if (recipients.length === 0) {
       console.log('No valid notification emails found. Skipping submission notification.');
@@ -479,19 +472,20 @@ const sendSubmissionNotificationEmail = async (options) => {
       subject: mailOptions.subject,
       message_id: messageId,
       status: success ? 'sent' : 'failed',
-      type: 'submission_notification'
+      type: 'submission_notification',
+      error: success ? null : 'Email sending failed'
     });
     
     return { success, messageId };
   } catch (error) {
     console.error('Error sending notification email:', error);
     
-    // Log the failed email
+    // Log the failed email with actual recipients
     await logEmail({
-      to_email: 'multiple recipients',
+      to_email: recipients ? recipients.join(', ') : '',
       subject: `New Form Submission: ${options.formTitle}`,
       status: 'failed',
-      error: error.message,
+      error: error.message || 'Unknown error',
       type: 'submission_notification'
     });
     

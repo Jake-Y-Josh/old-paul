@@ -59,6 +59,8 @@ class Email {
       // Build the query with handling for missing fields
       let query = `
         INSERT INTO email_logs (
+          client_id,
+          form_id,
           to_email,
           subject,
           message_id,
@@ -66,12 +68,14 @@ class Email {
           type,
           error,
           sent_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `;
       
       // Set default values for any missing fields
       const values = [
+        data.client_id || data.clientId || null,
+        data.form_id || data.formId || null,
         data.to_email || data.recipient || data.to || '',
         data.subject || '',
         data.messageId || data.message_id || '',
@@ -85,20 +89,22 @@ class Email {
       const result = await db.query(query, values);
       
       if (result.rows && result.rows.length > 0) {
-        logger.info(`Email log created: ${values[0]}, subject: ${values[1]}`);
+        logger.info(`Email log created: ${values[2]}, subject: ${values[3]}`);
         return result.rows[0];
       } else {
         // Fallback if the database insert fails
         logger.warn('Email log insert returned no rows, using fallback object');
         return {
           id: 0,
-          to_email: values[0],
-          subject: values[1],
-          message_id: values[2],
-          status: values[3],
-          type: values[4],
-          error: values[5],
-          sent_at: values[6],
+          client_id: values[0],
+          form_id: values[1],
+          to_email: values[2],
+          subject: values[3],
+          message_id: values[4],
+          status: values[5],
+          type: values[6],
+          error: values[7],
+          sent_at: values[8],
           created_at: new Date()
         };
       }
@@ -108,6 +114,8 @@ class Email {
       // Return a fallback object to prevent further errors
       return {
         id: 0,
+        client_id: data.client_id || data.clientId || null,
+        form_id: data.form_id || data.formId || null,
         to_email: data.to_email || data.recipient || data.to || '',
         subject: data.subject || '',
         message_id: data.messageId || data.message_id || '',
@@ -127,15 +135,7 @@ class Email {
    */
   static async create(emailData) {
     try {
-      return await this.log({
-        clientId: emailData.clientId || null,
-        formId: emailData.formId || null,
-        to: emailData.to || emailData.recipient,
-        subject: emailData.subject,
-        status: emailData.status || 'sent',
-        error: emailData.error,
-        sentAt: new Date()
-      });
+      return await this.log(emailData);
     } catch (error) {
       logger.error('Error creating email:', error);
       throw error;
