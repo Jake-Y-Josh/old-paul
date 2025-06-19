@@ -153,6 +153,14 @@ const login = async (req, res) => {
         return res.redirect('/admin/login');
       }
 
+      // Update last login time
+      try {
+        await Admin.updateLastLogin(admin.id);
+      } catch (updateError) {
+        console.error('Error updating last login:', updateError);
+        // Continue with login even if last login update fails
+      }
+
       // Set session
       req.session.adminId = admin.id;
       req.session.username = admin.username;

@@ -207,7 +207,7 @@ const updateUser = async (req, res) => {
       throw updateError;
     }
     
-    // If password should be updated too
+    // If password should be updated too (optional)
     if (new_password && current_password) {
       // Verify current password
       const isValidPassword = await bcrypt.compare(current_password, user.password_hash);

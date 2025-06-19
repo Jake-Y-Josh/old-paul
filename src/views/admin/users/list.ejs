@@ -25,7 +25,7 @@
             <tr>
               <th>Username</th>
               <th>Email</th>
-              <th>Last Login</th>
+              <!-- <th>Last Login</th> -->
               <th>Created At</th>
               <th class="text-end">Actions</th>
             </tr>
@@ -36,10 +36,10 @@
                 <tr>
                   <td><%= user.username %></td>
                   <td><%= user.email %></td>
-                  <td><%= user.last_login ? new Date(user.last_login).toLocaleString() : 'Never' %></td>
+                  <!-- <td><%= user.last_login ? new Date(user.last_login).toLocaleString() : 'Never' %></td> -->
                   <td><%= new Date(user.created_at).toLocaleString() %></td>
                   <td class="text-end">
-                    <a href="/admin/users/edit/<%= user.id %>" class="btn btn-sm btn-outline-primary">
+                    <a href="/admin/users/<%= user.id %>/edit" class="btn btn-sm btn-outline-primary">
                       <i class="fas fa-edit"></i>
                     </a>
                     <% if (user.username !== currentUser) { %>
@@ -56,7 +56,7 @@
               <% }) %>
             <% } else { %>
               <tr>
-                <td colspan="5" class="text-center py-4">
+                <td colspan="4" class="text-center py-4">
                   <div class="alert alert-info mb-0">
                     No users found. 
                   </div>

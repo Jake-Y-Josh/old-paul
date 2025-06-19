@@ -212,6 +212,13 @@ class Admin {
         invitation_token: null,
         invitation_token_expiry: null,
         is_active: true
+  
+  // Update last login time
+  static async updateLastLogin(adminId) {
+    const { data, error } = await supabase
+      .from('admins')
+      .update({
+        last_login: new Date()
       })
       .eq('id', adminId)
       .select();
