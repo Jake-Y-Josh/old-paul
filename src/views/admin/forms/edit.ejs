@@ -1,667 +1,572 @@
-<%- include('../../partials/admin-page-header', {
-  pageTitle: 'Edit Feedback Form',
-  pageDescription: 'Update your feedback form settings and questions',
-  breadcrumbs: [
-    { label: 'Forms', href: '/admin/forms' },
-    { label: 'Edit Form' }
-  ]
-}) %>
+<div class="row mb-4">
+  <div class="col-md-6">
+    <h1>Edit Feedback Form</h1>
+    <p class="text-muted">Update your feedback form settings and questions</p>
+  </div>
+  <div class="col-md-6 text-end">
+    <a href="/admin/forms" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left"></i> Back to Forms
+    </a>
+  </div>
+</div>
 
-<div class="container-fluid px-4">
-  <div class="card">
-    <div class="card-body">
-      <form id="editFormForm">
-        <input type="hidden" id="form-id" value="<%= form.id %>">
-        <div class="mb-4">
-          <label for="form-title" class="form-label">Form Title</label>
-          <input type="text" class="form-control" id="form-title" name="title" value="<%= form.title %>" required>
-          <div class="form-text">Give your form a descriptive name</div>
-        </div>
+<div class="card">
+  <div class="card-body">
+    <form id="editFormForm">
+      <input type="hidden" id="form-id" value="<%= form.id %>">
+      <div class="mb-4">
+        <label for="form-title" class="form-label">Form Title</label>
+        <input type="text" class="form-control" id="form-title" name="title" value="<%= form.title %>" required>
+        <div class="form-text">Give your form a descriptive name</div>
+      </div>
+      
+      <div class="mb-4">
+        <label for="form-description" class="form-label">Description</label>
+        <textarea class="form-control" id="form-description" name="description" rows="3"><%= form.description || '' %></textarea>
+        <div class="form-text">Add instructions or information that will be shown at the top of the form</div>
+      </div>
         
-        <div class="mb-4">
-          <label for="form-description" class="form-label">Description</label>
-          <textarea class="form-control" id="form-description" name="description" rows="3"><%= form.description || '' %></textarea>
-          <div class="form-text">Add instructions or information that will be shown at the top of the form</div>
+      <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <label class="form-label m-0">Form Steps</label>
+          <button type="button" class="btn btn-sm btn-primary" id="add-step-btn">
+            <i class="fas fa-plus"></i> Add Step
+          </button>
         </div>
+        <div class="form-text mb-3">Multi-step forms allow you to group questions into separate pages</div>
         
-        <div class="mb-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <label class="form-label m-0" id="form-steps-label">Form Steps</label>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="is-multi-step" name="isMultiStep" <%= form.is_multi_step ? 'checked' : '' %>>
-              <label class="form-check-label" for="is-multi-step">Enable Multi-Step Form</label>
-            </div>
-          </div>
-          
-          <div id="steps-container" class="<%= !form.is_multi_step ? 'd-none' : '' %>">
-            <p class="text-muted small">Configure the steps of your form. Each question can be assigned to a specific step.</p>
-            
-            <div class="row g-2" id="steps-list">
-              <% if (form.steps && form.steps.length > 0) { %>
-                <% form.steps.forEach((step, index) => { %>
-                  <div class="col-md-4 step-item" data-step-id="<%= index %>">
-                    <div class="card">
-                      <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                          <span class="step-number">Step <%= index + 1 %></span>
-                          <% if (index > 0) { %>
-                            <button type="button" class="btn btn-sm btn-link text-danger remove-step p-0" title="Remove Step">
-                              <i class="fas fa-times"></i>
-                            </button>
-                          <% } %>
-                        </div>
-                        <div class="mb-3">
-                          <input type="text" class="form-control form-control-sm step-title" placeholder="Step Title" value="<%= step.title || '' %>">
-                        </div>
-                        <div>
-                          <textarea class="form-control form-control-sm step-description" rows="2" placeholder="Step Description"><%= step.description || '' %></textarea>
-                        </div>
-                      </div>
-                    </div>
+        <!-- Steps container -->
+        <div id="steps-container" class="mb-3">
+          <% if (form.steps && form.steps.length > 0) { %>
+            <% form.steps.forEach((step, index) => { %>
+              <div class="step-item card mb-3" data-step-index="<%= index %>">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title m-0">Step <%= index + 1 %></h5>
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-step-btn" <%= index === 0 ? 'style="display: none;"' : '' %>>
+                      <i class="fas fa-trash"></i>
+                    </button>
                   </div>
-                <% }); %>
-              <% } else { %>
-                <div class="col-md-4 step-item" data-step-id="0">
-                  <div class="card">
-                    <div class="card-body p-3">
-                      <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="step-number">Step 1</span>
-                      </div>
-                      <div class="mb-3">
-                        <input type="text" class="form-control form-control-sm step-title" placeholder="Step Title" value="Basic Information">
-                      </div>
-                      <div>
-                        <textarea class="form-control form-control-sm step-description" rows="2" placeholder="Step Description">Please provide the basic information requested below.</textarea>
-                      </div>
-                    </div>
+                  <div class="mb-3">
+                    <label class="form-label">Step Title</label>
+                    <input type="text" class="form-control step-title" name="steps[<%= index %>][title]" value="<%= step.title || 'Step ' + (index + 1) %>">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Step Description</label>
+                    <textarea class="form-control step-description" name="steps[<%= index %>][description]" rows="2"><%= step.description || '' %></textarea>
                   </div>
                 </div>
-              <% } %>
-              
-              <div class="col-md-4">
-                <button type="button" class="btn btn-outline-secondary btn-sm w-100 h-100" id="add-step">
-                  <i class="fas fa-plus"></i> Add Step
-                </button>
+              </div>
+            <% }); %>
+          <% } else { %>
+            <div class="step-item card mb-3" data-step-index="0">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="card-title m-0">Step 1</h5>
+                  <button type="button" class="btn btn-sm btn-outline-danger delete-step-btn" style="display: none;">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Step Title</label>
+                  <input type="text" class="form-control step-title" name="steps[0][title]" value="Step 1">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Step Description</label>
+                  <textarea class="form-control step-description" name="steps[0][description]" rows="2"></textarea>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+        
+      <hr class="my-4">
+      
+      <div class="mb-3 d-flex justify-content-between align-items-center">
+        <h5 class="m-0">Form Questions</h5>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="enable-steps-mode" <%= form.is_multi_step || (form.steps && form.steps.length > 1) ? 'checked' : '' %>>
+          <label class="form-check-label" for="enable-steps-mode">Organize by Steps</label>
+        </div>
+      </div>
+      
+      <!-- Step selector (only visible when steps are enabled) -->
+      <div id="step-selector" class="mb-4" <%= !form.is_multi_step && (!form.steps || form.steps.length <= 1) ? 'style="display: none;"' : '' %>>
+        <label class="form-label">Current Step</label>
+        <select class="form-select" id="current-step-select">
+          <% if (form.steps && form.steps.length > 0) { %>
+            <% form.steps.forEach((step, index) => { %>
+              <option value="<%= index %>">Step <%= index + 1 %></option>
+            <% }); %>
+          <% } else { %>
+            <option value="0">Step 1</option>
+          <% } %>
+        </select>
+      </div>
+      
+      <!-- Questions container -->
+      <div id="questions-container" class="mb-4">
+        <% if (form.questions && form.questions.length > 0) { %>
+          <% form.questions.forEach((question, index) => { %>
+            <div class="question-item mb-4" data-type="<%= question.type %>" data-index="<%= index %>" data-step="<%= question.step || 0 %>">
+              <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                  <span class="question-number">Question <%= index + 1 %></span>
+                  <div>
+                    <select class="form-select-sm question-type-select">
+                      <option value="text" <%= question.type === 'text' ? 'selected' : '' %>>Text Input</option>
+                      <option value="textarea" <%= question.type === 'textarea' ? 'selected' : '' %>>Long Text</option>
+                      <option value="radio" <%= question.type === 'radio' ? 'selected' : '' %>>Single Choice</option>
+                      <option value="checkbox" <%= question.type === 'checkbox' ? 'selected' : '' %>>Multiple Choice</option>
+                      <option value="select" <%= question.type === 'select' ? 'selected' : '' %>>Dropdown</option>
+                      <option value="rating" <%= question.type === 'rating' ? 'selected' : '' %>>Rating Scale</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-danger delete-question-btn ms-2">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label">Question Text</label>
+                    <input type="text" class="form-control question-text" name="questions[<%= index %>][text]" value="<%= question.text %>" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label class="form-label">Help Text (Optional)</label>
+                    <input type="text" class="form-control question-help" name="questions[<%= index %>][help]" value="<%= question.help || '' %>">
+                    <div class="form-text">Additional instructions for this question</div>
+                  </div>
+                  
+                  <div class="question-options" style="display: <%= ['radio', 'checkbox', 'select', 'rating'].includes(question.type) ? 'block' : 'none' %>">
+                    <label class="form-label options-label"><%= question.type === 'rating' ? 'Rating Scale' : 'Options' %></label>
+                    
+                    <!-- Rating scale min/max inputs -->
+                    <div class="rating-scale-inputs row mb-2" style="display: <%= question.type === 'rating' ? 'flex' : 'none' %>">
+                      <div class="col-md-6">
+                        <label class="form-label small">Minimum Value</label>
+                        <input type="number" class="form-control form-control-sm rating-min" value="<%= question.min || 1 %>" min="0" max="10">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label small">Maximum Value</label>
+                        <input type="number" class="form-control form-control-sm rating-max" value="<%= question.max || 5 %>" min="1" max="10">
+                      </div>
+                    </div>
+                    
+                    <!-- Regular options list for other question types -->
+                    <div class="options-list mb-2" style="display: <%= question.type === 'rating' ? 'none' : 'block' %>">
+                      <% if (question.options && question.options.length > 0) { %>
+                        <% question.options.forEach((option, optionIndex) => { %>
+                          <div class="input-group mb-2">
+                            <input type="text" class="form-control" value="<%= typeof option === 'string' ? option : option.text || option %>" placeholder="Option <%= optionIndex + 1 %>">
+                            <button class="btn btn-outline-danger delete-option-btn" type="button">
+                              <i class="fas fa-times"></i>
+                            </button>
+                          </div>
+                        <% }); %>
+                      <% } else if (['radio', 'checkbox', 'select'].includes(question.type)) { %>
+                        <div class="input-group mb-2">
+                          <input type="text" class="form-control" placeholder="Option 1">
+                          <button class="btn btn-outline-danger delete-option-btn" type="button">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </div>
+                        <div class="input-group mb-2">
+                          <input type="text" class="form-control" placeholder="Option 2">
+                          <button class="btn btn-outline-danger delete-option-btn" type="button">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </div>
+                      <% } %>
+                    </div>
+                    
+                    <!-- Add option button (not shown for rating scale) -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary add-option-btn" style="display: <%= question.type === 'rating' ? 'none' : 'block' %>">
+                      <i class="fas fa-plus"></i> Add Option
+                    </button>
+                  </div>
+                  
+                  <div class="form-check mt-3">
+                    <input class="form-check-input question-required" type="checkbox" name="questions[<%= index %>][required]" id="question-required-<%= index %>" <%= question.required ? 'checked' : '' %>>
+                    <label class="form-check-label" for="question-required-<%= index %>">
+                      This question is required
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% }); %>
+        <% } %>
+      </div>
+      
+      <!-- Add question placeholder (always visible at the bottom) -->
+      <div class="add-question-placeholder mb-4">
+        <div class="add-question-button">
+          <button type="button" class="btn btn-light btn-add-question" id="btn-add-initial-question">
+            <i class="fas fa-plus-circle me-2"></i> Add Question
+          </button>
+        </div>
+      </div>
+        
+      <hr class="my-4">
+      
+      <div class="d-flex justify-content-end">
+        <button type="button" class="btn btn-secondary me-2" id="cancel-btn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="save-form-btn">Update Form</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Question Type Modal -->
+<div class="modal fade" id="questionTypeModal" tabindex="-1" aria-labelledby="questionTypeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="questionTypeModalLabel">Choose Question Type</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+          <div class="col">
+            <div class="card h-100 question-type-option" data-type="text">
+              <div class="card-body text-center">
+                <div class="icon-box mb-3 bg-light-primary mx-auto">
+                  <i class="fas fa-font text-primary"></i>
+                </div>
+                <h5 class="card-title">Text Input</h5>
+                <p class="card-text small text-muted">Short answer text field</p>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card h-100 question-type-option" data-type="textarea">
+              <div class="card-body text-center">
+                <div class="icon-box mb-3 bg-light-info mx-auto">
+                  <i class="fas fa-align-left text-info"></i>
+                </div>
+                <h5 class="card-title">Long Text</h5>
+                <p class="card-text small text-muted">Paragraph text field</p>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card h-100 question-type-option" data-type="radio">
+              <div class="card-body text-center">
+                <div class="icon-box mb-3 bg-light-success mx-auto">
+                  <i class="fas fa-dot-circle text-success"></i>
+                </div>
+                <h5 class="card-title">Single Choice</h5>
+                <p class="card-text small text-muted">Radio button options</p>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card h-100 question-type-option" data-type="checkbox">
+              <div class="card-body text-center">
+                <div class="icon-box mb-3 bg-light-warning mx-auto">
+                  <i class="fas fa-check-square text-warning"></i>
+                </div>
+                <h5 class="card-title">Multiple Choice</h5>
+                <p class="card-text small text-muted">Checkbox options</p>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card h-100 question-type-option" data-type="select">
+              <div class="card-body text-center">
+                <div class="icon-box mb-3 bg-light-secondary mx-auto">
+                  <i class="fas fa-caret-down text-secondary"></i>
+                </div>
+                <h5 class="card-title">Dropdown</h5>
+                <p class="card-text small text-muted">Select from a list</p>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card h-100 question-type-option" data-type="rating">
+              <div class="card-body text-center">
+                <div class="icon-box mb-3 bg-light-danger mx-auto">
+                  <i class="fas fa-star text-danger"></i>
+                </div>
+                <h5 class="card-title">Rating Scale</h5>
+                <p class="card-text small text-muted">Numeric rating</p>
               </div>
             </div>
           </div>
         </div>
-        
-        <div class="mb-4">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <label class="form-label m-0">Form Questions</label>
-            <button type="button" class="btn btn-primary btn-sm" id="add-question">
-              <i class="fas fa-plus"></i> Add Question
-            </button>
-          </div>
-          
-          <div id="questions-container">
-            <% if (form.questions && form.questions.length > 0) { %>
-              <% form.questions.forEach((question, index) => { %>
-                <div class="card mb-3 question-card" data-question-id="<%= index %>">
-                  <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
-                    <span class="question-number">Question <%= index + 1 %></span>
-                    <div>
-                      <button type="button" class="btn btn-sm btn-link move-question-up" title="Move Up">
-                        <i class="fas fa-arrow-up"></i>
-                      </button>
-                      <button type="button" class="btn btn-sm btn-link move-question-down" title="Move Down">
-                        <i class="fas fa-arrow-down"></i>
-                      </button>
-                      <button type="button" class="btn btn-sm btn-link text-danger remove-question" title="Remove Question">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="card-body">
-                    <div class="mb-3">
-                      <div class="d-flex justify-content-between align-items-center mb-2">
-                        <label class="form-label">Question Text</label>
-                        <div class="step-selector <%= !form.is_multi_step ? 'd-none' : '' %>">
-                          <label class="form-label small me-2">Step:</label>
-                          <select class="form-select form-select-sm question-step" style="width: auto; display: inline-block;">
-                            <% if (form.steps && form.steps.length > 0) { %>
-                              <% form.steps.forEach((step, stepIndex) => { %>
-                                <option value="<%= stepIndex %>" <%= question.step === stepIndex ? 'selected' : '' %>>
-                                  Step <%= stepIndex + 1 %>: <%= step.title || 'Untitled' %>
-                                </option>
-                              <% }); %>
-                            <% } else { %>
-                              <option value="0">Step 1</option>
-                            <% } %>
-                          </select>
-                        </div>
-                      </div>
-                      <input type="text" class="form-control question-text" value="<%= question.text %>" required>
-                    </div>
-                    <div class="row mb-3">
-                      <div class="col-md-6">
-                        <label class="form-label">Question Type</label>
-                        <select class="form-select question-type">
-                          <option value="text" <%= question.type === 'text' ? 'selected' : '' %>>Short Text</option>
-                          <option value="textarea" <%= question.type === 'textarea' ? 'selected' : '' %>>Long Text</option>
-                          <option value="radio" <%= question.type === 'radio' ? 'selected' : '' %>>Multiple Choice (Radio)</option>
-                          <option value="checkbox" <%= question.type === 'checkbox' ? 'selected' : '' %>>Checkboxes (Multiple Selection)</option>
-                          <option value="select" <%= question.type === 'select' ? 'selected' : '' %>>Dropdown</option>
-                          <option value="rating" <%= question.type === 'rating' ? 'selected' : '' %>>Rating</option>
-                          <option value="date" <%= question.type === 'date' ? 'selected' : '' %>>Date</option>
-                          <option value="email" <%= question.type === 'email' ? 'selected' : '' %>>Email</option>
-                          <option value="tel" <%= question.type === 'tel' ? 'selected' : '' %>>Phone Number</option>
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label">Required?</label>
-                        <div class="form-check form-switch mt-2">
-                          <input class="form-check-input question-required" type="checkbox" <%= question.required ? 'checked' : '' %>>
-                          <label class="form-check-label">Make this question required</label>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <!-- Options for multiple choice questions -->
-                    <div class="options-container <%= ['radio', 'checkbox', 'select'].includes(question.type) ? '' : 'd-none' %>">
-                      <label class="form-label">Options</label>
-                      <div class="options-list">
-                        <% if (question.options && question.options.length > 0) { %>
-                          <% question.options.forEach((option, optionIndex) => { %>
-                            <div class="input-group mb-2 option-item">
-                              <input type="text" class="form-control option-text" value="<%= option.text || option %>" placeholder="Option text">
-                              <button class="btn btn-outline-danger remove-option" type="button">
-                                <i class="fas fa-times"></i>
-                              </button>
-                            </div>
-                          <% }); %>
-                        <% } else { %>
-                          <div class="input-group mb-2 option-item">
-                            <input type="text" class="form-control option-text" placeholder="Option text">
-                            <button class="btn btn-outline-danger remove-option" type="button">
-                              <i class="fas fa-times"></i>
-                            </button>
-                          </div>
-                        <% } %>
-                      </div>
-                      <button type="button" class="btn btn-sm btn-outline-secondary add-option mt-2">
-                        <i class="fas fa-plus"></i> Add Option
-                      </button>
-                    </div>
-                    
-                    <!-- Rating scale settings -->
-                    <div class="rating-container <%= question.type === 'rating' ? '' : 'd-none' %>">
-                      <div class="row">
-                        <div class="col-md-4">
-                          <label class="form-label">Scale</label>
-                          <select class="form-select rating-scale">
-                            <option value="5" <%= !question.scale || question.scale === 5 ? 'selected' : '' %>>5 Stars</option>
-                            <option value="10" <%= question.scale === 10 ? 'selected' : '' %>>10 Points</option>
-                          </select>
-                        </div>
-                        <div class="col-md-4">
-                          <label class="form-label">Low Label</label>
-                          <input type="text" class="form-control rating-low" placeholder="e.g., Poor" value="<%= question.lowLabel || 'Poor' %>">
-                        </div>
-                        <div class="col-md-4">
-                          <label class="form-label">High Label</label>
-                          <input type="text" class="form-control rating-high" placeholder="e.g., Excellent" value="<%= question.highLabel || 'Excellent' %>">
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              <% }); %>
-            <% } %>
-          </div>
-        </div>
-        
-        <div class="alert alert-danger d-none" id="form-error"></div>
-        
-        <div class="d-flex justify-content-end gap-2">
-          <a href="/admin/forms" class="btn btn-outline-secondary" id="cancel-btn">Cancel</a>
-          <button type="button" class="btn btn-primary" id="save-form-btn">
-            <i class="fas fa-save"></i> Update Form
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Question Template for JavaScript -->
-<template id="question-template">
-  <div class="card mb-3 question-card" data-question-id="{id}">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
-      <span class="question-number">Question {number}</span>
-      <div>
-        <button type="button" class="btn btn-sm btn-link move-question-up" title="Move Up">
-          <i class="fas fa-arrow-up"></i>
-        </button>
-        <button type="button" class="btn btn-sm btn-link move-question-down" title="Move Down">
-          <i class="fas fa-arrow-down"></i>
-        </button>
-        <button type="button" class="btn btn-sm btn-link text-danger remove-question" title="Remove Question">
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <label class="form-label">Question Text</label>
-          <div class="step-selector d-none">
-            <label class="form-label small me-2">Step:</label>
-            <select class="form-select form-select-sm question-step" style="width: auto; display: inline-block;">
-              <!-- Steps will be populated via JavaScript -->
-            </select>
-          </div>
-        </div>
-        <input type="text" class="form-control question-text" value="" required>
-      </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Question Type</label>
-          <select class="form-select question-type">
-            <option value="text">Short Text</option>
-            <option value="textarea">Long Text</option>
-            <option value="radio">Multiple Choice (Radio)</option>
-            <option value="checkbox">Checkboxes (Multiple Selection)</option>
-            <option value="select">Dropdown</option>
-            <option value="rating">Rating</option>
-            <option value="date">Date</option>
-            <option value="email">Email</option>
-            <option value="tel">Phone Number</option>
-          </select>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Required?</label>
-          <div class="form-check form-switch mt-2">
-            <input class="form-check-input question-required" type="checkbox">
-            <label class="form-check-label">Make this question required</label>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Options for multiple choice questions -->
-      <div class="options-container d-none">
-        <label class="form-label">Options</label>
-        <div class="options-list">
-          <div class="input-group mb-2 option-item">
-            <input type="text" class="form-control option-text" placeholder="Option text">
-            <button class="btn btn-outline-danger remove-option" type="button">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-secondary add-option mt-2">
-          <i class="fas fa-plus"></i> Add Option
-        </button>
-      </div>
-      
-      <!-- Rating scale settings -->
-      <div class="rating-container d-none">
-        <div class="row">
-          <div class="col-md-4">
-            <label class="form-label">Scale</label>
-            <select class="form-select rating-scale">
-              <option value="5" selected>5 Stars</option>
-              <option value="10">10 Points</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Low Label</label>
-            <input type="text" class="form-control rating-low" placeholder="e.g., Poor" value="Poor">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">High Label</label>
-            <input type="text" class="form-control rating-high" placeholder="e.g., Excellent" value="Excellent">
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
-<!-- Step Template for JavaScript -->
-<template id="step-template">
-  <div class="col-md-4 step-item" data-step-id="{id}">
-    <div class="card">
-      <div class="card-body p-3">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="step-number">Step {number}</span>
-          <button type="button" class="btn btn-sm btn-link text-danger remove-step p-0" title="Remove Step">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="mb-3">
-          <input type="text" class="form-control form-control-sm step-title" placeholder="Step Title">
-        </div>
-        <div>
-          <textarea class="form-control form-control-sm step-description" rows="2" placeholder="Step Description"></textarea>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Get individual form data elements directly
-    const formId = <%= form.id %>;
-    const formTitle = "<%-form.title.replace(/"/g, '\\"')%>";
-    const formDescription = "<%-form.description ? form.description.replace(/"/g, '\\"') : ''%>";
-    const isMultiStep = <%= form.is_multi_step ? true : false %>;
-    const formSteps = <%- JSON.stringify(form.steps || []) %>;
-    const formQuestions = <%- JSON.stringify(form.questions || []) %>;
-    
-    const isMultiStepSwitch = document.getElementById('is-multi-step');
-    const stepsContainer = document.getElementById('steps-container');
-    const formStepsLabel = document.getElementById('form-steps-label');
-    const addStepBtn = document.getElementById('add-step');
-    const stepsList = document.getElementById('steps-list');
+    // DOM elements
     const questionsContainer = document.getElementById('questions-container');
-    const addQuestionBtn = document.getElementById('add-question');
-    const saveBtn = document.getElementById('save-form-btn');
+    const editFormForm = document.getElementById('editFormForm');
     const cancelBtn = document.getElementById('cancel-btn');
-    const questionTemplate = document.getElementById('question-template').innerHTML;
-    const stepTemplate = document.getElementById('step-template').innerHTML;
+    const addInitialQuestionBtn = document.getElementById('btn-add-initial-question');
+    const addStepBtn = document.getElementById('add-step-btn');
+    const stepsContainer = document.getElementById('steps-container');
+    const currentStepSelect = document.getElementById('current-step-select');
+    const enableStepsMode = document.getElementById('enable-steps-mode');
+    const stepSelector = document.getElementById('step-selector');
     
-    // Initially hide/show the form steps label based on checkbox state
-    formStepsLabel.style.display = isMultiStepSwitch.checked ? 'block' : 'none';
+    // Bootstrap modal
+    const questionTypeModal = new bootstrap.Modal(document.getElementById('questionTypeModal'));
     
-    // Toggle multi-step form UI
-    isMultiStepSwitch.addEventListener('change', function() {
-      stepsContainer.classList.toggle('d-none', !this.checked);
-      formStepsLabel.style.display = this.checked ? 'block' : 'none';
-      document.querySelectorAll('.step-selector').forEach(el => {
-        el.classList.toggle('d-none', !this.checked);
-      });
-    });
+    // State
+    let questionCount = document.querySelectorAll('.question-item').length;
+    let stepCount = document.querySelectorAll('.step-item').length || 1;
+    let insertPosition = null; // Where to insert the new question
+    let currentStep = 0; // Current active step
+    let questionsByStep = {}; // Object to track which questions belong to which step
     
-    // Add step button
-    if (addStepBtn) {
-      addStepBtn.addEventListener('click', function() {
-        const stepItems = document.querySelectorAll('.step-item');
-        const newStepId = stepItems.length;
-        const newStepHtml = stepTemplate
-          .replace(/{id}/g, newStepId)
-          .replace(/{number}/g, newStepId + 1);
-        
-        // Insert the new step before the add button
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = newStepHtml;
-        stepsList.insertBefore(tempDiv.firstElementChild, addStepBtn.parentElement);
-        
-        // Update question step selectors
-        updateStepSelectors();
-        
-        // Add event listener for remove step button
-        setupStepRemoveHandlers();
-      });
-    }
-    
-    // Setup step remove handlers
-    function setupStepRemoveHandlers() {
-      document.querySelectorAll('.remove-step').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const stepItem = this.closest('.step-item');
-          if (stepItem && confirm('Are you sure you want to remove this step?')) {
-            stepItem.remove();
-            reindexSteps();
-            updateStepSelectors();
-          }
-        });
-      });
-    }
-    
-    // Reindex steps after removal
-    function reindexSteps() {
-      const stepItems = document.querySelectorAll('.step-item');
-      stepItems.forEach((item, index) => {
-        item.dataset.stepId = index;
-        item.querySelector('.step-number').textContent = `Step ${index + 1}`;
-      });
-    }
-    
-    // Update step selectors in questions
-    function updateStepSelectors() {
-      const steps = Array.from(document.querySelectorAll('.step-item')).map((el, index) => {
-        const title = el.querySelector('.step-title').value || 'Untitled';
-        return { id: index, title: title };
-      });
-      
-      document.querySelectorAll('.question-step').forEach(select => {
-        const currentValue = select.value;
-        select.innerHTML = '';
-        
-        steps.forEach(step => {
-          const option = document.createElement('option');
-          option.value = step.id;
-          option.textContent = `Step ${parseInt(step.id) + 1}: ${step.title}`;
-          select.appendChild(option);
-        });
-        
-        if (steps.length > 0 && currentValue < steps.length) {
-          select.value = currentValue;
-        }
-      });
-    }
-    
-    // Add question button
-    addQuestionBtn.addEventListener('click', function() {
-      const questionCount = document.querySelectorAll('.question-card').length;
-      const newQuestionHtml = questionTemplate
-        .replace(/{id}/g, questionCount)
-        .replace(/{number}/g, questionCount + 1);
-      
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = newQuestionHtml;
-      questionsContainer.appendChild(tempDiv.firstElementChild);
-      
-      // Set up event handlers for the new question
-      setupQuestionHandlers(questionsContainer.lastElementChild);
-      
-      // Add step selector options if multi-step is enabled
-      if (isMultiStepSwitch.checked) {
-        const stepSelector = questionsContainer.lastElementChild.querySelector('.step-selector');
-        stepSelector.classList.remove('d-none');
-        updateStepSelectors();
+    // Initialize questionsByStep with existing questions
+    document.querySelectorAll('.question-item').forEach(item => {
+      const stepIndex = parseInt(item.dataset.step || "0");
+      if (!questionsByStep[stepIndex]) {
+        questionsByStep[stepIndex] = [];
       }
+      questionsByStep[stepIndex].push(item);
     });
     
-    // Function to set up question handlers
-    function setupQuestionHandlers(questionEl) {
-      // Type change handler
-      const typeSelect = questionEl.querySelector('.question-type');
-      typeSelect.addEventListener('change', function() {
-        const optionsContainer = questionEl.querySelector('.options-container');
-        const ratingContainer = questionEl.querySelector('.rating-container');
-        
-        optionsContainer.classList.toggle('d-none', !['radio', 'checkbox', 'select'].includes(this.value));
-        ratingContainer.classList.toggle('d-none', this.value !== 'rating');
+    // Initialize steps mode
+    updateStepsMode();
+    
+    // Add first question button click handler
+    addInitialQuestionBtn.addEventListener('click', function() {
+      questionTypeModal.show();
+      insertPosition = null; // Add to the end
+    });
+    
+    // Question type selection
+    document.querySelectorAll('.question-type-option').forEach(option => {
+      option.addEventListener('click', function() {
+        const type = this.dataset.type;
+        addQuestion(type, insertPosition);
+        questionTypeModal.hide();
       });
+    });
+    
+    // Steps mode toggle handler
+    enableStepsMode.addEventListener('change', function() {
+      updateStepsMode();
+    });
+    
+    // Current step selector change handler
+    currentStepSelect.addEventListener('change', function() {
+      currentStep = parseInt(this.value);
+      displayQuestionsForCurrentStep();
+    });
+    
+    // Add step button handler
+    addStepBtn.addEventListener('click', function() {
+      addStep();
+    });
+    
+    // Update step mode visibility and functionality
+    function updateStepsMode() {
+      const isStepsEnabled = enableStepsMode.checked;
+      stepSelector.style.display = isStepsEnabled ? 'block' : 'none';
       
-      // Add option button
-      const addOptionBtn = questionEl.querySelector('.add-option');
-      if (addOptionBtn) {
-        addOptionBtn.addEventListener('click', function() {
-          const optionsList = this.previousElementSibling;
-          const optionItem = optionsList.querySelector('.option-item').cloneNode(true);
-          optionItem.querySelector('.option-text').value = '';
-          optionsList.appendChild(optionItem);
-          
-          // Set up remove handler for the new option
-          setupOptionRemoveHandlers(optionItem);
-        });
+      // Show/hide delete buttons for steps (always keep at least one step)
+      if (isStepsEnabled) {
+        const deleteButtons = stepsContainer.querySelectorAll('.delete-step-btn');
+        if (deleteButtons.length <= 1) {
+          deleteButtons.forEach(btn => btn.style.display = 'none');
+        } else {
+          deleteButtons.forEach(btn => btn.style.display = 'block');
+        }
       }
       
-      // Remove option buttons
-      setupOptionRemoveHandlers(questionEl);
+      // Display questions for current step or all questions
+      displayQuestionsForCurrentStep();
+    }
+    
+    // Add a new step to the form
+    function addStep() {
+      stepCount++;
+      const stepIndex = stepCount - 1;
       
-      // Remove question button
-      const removeBtn = questionEl.querySelector('.remove-question');
-      removeBtn.addEventListener('click', function() {
-        if (confirm('Are you sure you want to remove this question?')) {
-          questionEl.remove();
-          reindexQuestions();
+      // Create step container
+      const stepItem = document.createElement('div');
+      stepItem.className = 'step-item card mb-3';
+      stepItem.dataset.stepIndex = stepIndex;
+      
+      // Create step structure
+      stepItem.innerHTML = `
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title m-0">Step ${stepCount}</h5>
+            <button type="button" class="btn btn-sm btn-outline-danger delete-step-btn">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Step Title</label>
+            <input type="text" class="form-control step-title" name="steps[${stepIndex}][title]" value="Step ${stepCount}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Step Description</label>
+            <textarea class="form-control step-description" name="steps[${stepIndex}][description]" rows="2"></textarea>
+          </div>
+        </div>
+      `;
+      
+      // Add step to container
+      stepsContainer.appendChild(stepItem);
+      
+      // Initialize question storage for this step
+      questionsByStep[stepIndex] = [];
+      
+      // Add to step selector
+      const option = document.createElement('option');
+      option.value = stepIndex;
+      option.textContent = `Step ${stepCount}`;
+      currentStepSelect.appendChild(option);
+      
+      // Set this as the current step
+      currentStepSelect.value = stepIndex;
+      currentStep = stepIndex;
+      displayQuestionsForCurrentStep();
+      
+      // Show delete buttons if there's more than one step
+      updateStepsMode();
+    }
+    
+    // Display questions for the current step only (if steps mode is enabled)
+    function displayQuestionsForCurrentStep() {
+      const isStepsEnabled = enableStepsMode.checked;
+      
+      document.querySelectorAll('.question-item').forEach(item => {
+        if (isStepsEnabled) {
+          // In steps mode, only show questions for the current step
+          const questionStep = item.dataset.step || "0";
+          item.style.display = (questionStep === currentStep.toString()) ? 'block' : 'none';
+        } else {
+          // In regular mode, show all questions
+          item.style.display = 'block';
         }
       });
       
-      // Move up button
-      const moveUpBtn = questionEl.querySelector('.move-question-up');
-      moveUpBtn.addEventListener('click', function() {
-        const card = this.closest('.question-card');
-        const prev = card.previousElementSibling;
-        
-        if (prev) {
-          questionsContainer.insertBefore(card, prev);
-          reindexQuestions();
-        }
-      });
+      // Show/hide the add question placeholder
+      const hasVisibleQuestions = document.querySelectorAll('.question-item:not([style*="display: none"])').length > 0;
+      document.querySelector('.add-question-placeholder').style.display = hasVisibleQuestions ? 'none' : 'block';
+    }
+    
+    // Form submission handler
+    editFormForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
       
-      // Move down button
-      const moveDownBtn = questionEl.querySelector('.move-question-down');
-      moveDownBtn.addEventListener('click', function() {
-        const card = this.closest('.question-card');
-        const next = card.nextElementSibling;
-        
-        if (next) {
-          questionsContainer.insertBefore(next, card);
-          reindexQuestions();
-        }
-      });
-    }
-    
-    // Set up handlers for removing options
-    function setupOptionRemoveHandlers(container) {
-      const removeBtns = container.querySelectorAll ? 
-        container.querySelectorAll('.remove-option') : 
-        [container.querySelector('.remove-option')];
+      // Show loading state
+      const saveBtn = document.getElementById('save-form-btn');
+      const originalText = saveBtn.innerHTML;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
       
-      removeBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-          const optionsItems = this.closest('.options-list').querySelectorAll('.option-item');
-          if (optionsItems.length > 1) {
-            this.closest('.option-item').remove();
-          } else {
-            this.closest('.option-item').querySelector('.option-text').value = '';
-          }
-        });
-      });
-    }
-    
-    // Reindex question numbers
-    function reindexQuestions() {
-      const questions = document.querySelectorAll('.question-card');
-      questions.forEach((q, i) => {
-        q.dataset.questionId = i;
-        q.querySelector('.question-number').textContent = `Question ${i + 1}`;
-      });
-    }
-    
-    // Set up handlers for existing questions
-    document.querySelectorAll('.question-card').forEach(questionEl => {
-      setupQuestionHandlers(questionEl);
-    });
-    
-    // Set up handlers for existing steps
-    setupStepRemoveHandlers();
-    
-    // Save form button
-    saveBtn.addEventListener('click', async function() {
       try {
-        // Disable button and show loading state
-        const originalText = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-        
-        // Get form data
-        const title = document.getElementById('form-title').value;
-        const description = document.getElementById('form-description').value;
-        const isMultiStepEnabled = document.getElementById('is-multi-step').checked;
-        
-        // Validate basic info
-        if (!title) {
-          throw new Error('Form title is required');
+        // Validate if there are any questions
+        if (document.querySelectorAll('.question-item').length === 0) {
+          throw new Error('Your form needs at least one question');
         }
         
-        // Get steps data if multi-step is enabled
-        let steps = [];
-        if (isMultiStepEnabled) {
-          document.querySelectorAll('.step-item').forEach((el, index) => {
-            steps.push({
-              id: index,
-              title: el.querySelector('.step-title').value || `Step ${index + 1}`,
-              description: el.querySelector('.step-description').value || ''
+        // Validate form title
+        const formTitle = document.getElementById('form-title').value.trim();
+        if (!formTitle) {
+          throw new Error('Please provide a form title');
+        }
+        
+        // Serialize form data to JSON
+        const formData = new FormData(editFormForm);
+        const formObject = {};
+        
+        // Basic form properties
+        formObject.title = formTitle;
+        formObject.description = document.getElementById('form-description').value || '';
+        formObject.isMultiStep = enableStepsMode.checked;
+        formObject.steps = [];
+        formObject.questions = [];
+        
+        // Process steps if multi-step is enabled
+        if (formObject.isMultiStep) {
+          const stepItems = document.querySelectorAll('.step-item');
+          
+          stepItems.forEach((item, index) => {
+            const stepTitle = item.querySelector('.step-title').value.trim() || `Step ${index + 1}`;
+            const stepDescription = item.querySelector('.step-description').value.trim() || '';
+            
+            formObject.steps.push({
+              title: stepTitle,
+              description: stepDescription,
+              stepIndex: index
             });
           });
-          
-          if (steps.length === 0) {
-            throw new Error('Multi-step form requires at least one step');
-          }
         }
         
-        // Get questions data
-        const questions = [];
-        document.querySelectorAll('.question-card').forEach(el => {
-          const questionId = el.dataset.questionId;
-          const text = el.querySelector('.question-text').value;
-          const type = el.querySelector('.question-type').value;
-          const required = el.querySelector('.question-required').checked;
-          const stepSelect = el.querySelector('.question-step');
-          const step = stepSelect && isMultiStepEnabled ? parseInt(stepSelect.value) : 0;
+        // Process questions
+        const questionItems = document.querySelectorAll('.question-item');
+        
+        // Validate each question
+        for (let i = 0; i < questionItems.length; i++) {
+          const item = questionItems[i];
+          const questionType = item.dataset.type;
+          const questionText = item.querySelector('.question-text').value.trim();
+          const questionStep = formObject.isMultiStep ? (item.dataset.step || "0") : "0";
           
-          if (!text) {
-            throw new Error(`Question ${parseInt(questionId) + 1} text is required`);
+          if (!questionText) {
+            throw new Error(`Question ${i + 1} is missing text`);
           }
           
           const question = {
-            id: questionId,
-            text,
-            type,
-            required,
-            step
+            text: questionText,
+            type: questionType,
+            help: item.querySelector('.question-help').value.trim(),
+            required: item.querySelector('.question-required').checked,
+            step: parseInt(questionStep)
           };
           
-          // Get options for multiple choice questions
-          if (['radio', 'checkbox', 'select'].includes(type)) {
-            const options = [];
-            el.querySelectorAll('.option-text').forEach(optionEl => {
-              const optionText = optionEl.value.trim();
-              if (optionText) {
-                options.push({ text: optionText });
+          // Handle options for select/radio/checkbox types
+          if (['radio', 'checkbox', 'select'].includes(questionType)) {
+            question.options = [];
+            const optionInputs = item.querySelectorAll('.options-list input');
+            
+            // Ensure at least one option is provided
+            let hasValidOption = false;
+            
+            optionInputs.forEach(input => {
+              if (input.value.trim()) {
+                question.options.push(input.value.trim());
+                hasValidOption = true;
               }
             });
             
-            if (options.length === 0) {
-              throw new Error(`Question ${parseInt(questionId) + 1} requires at least one option`);
+            if (!hasValidOption) {
+              throw new Error(`Question ${i + 1} needs at least one option`);
             }
+          }
+          
+          // Handle rating scale min/max values
+          if (questionType === 'rating') {
+            question.min = parseInt(item.querySelector('.rating-min').value) || 1;
+            question.max = parseInt(item.querySelector('.rating-max').value) || 5;
             
-            question.options = options;
+            // Ensure max is greater than min
+            if (question.max <= question.min) {
+              question.max = question.min + 1;
+            }
           }
           
-          // Get rating scale settings
-          if (type === 'rating') {
-            question.scale = parseInt(el.querySelector('.rating-scale').value);
-            question.lowLabel = el.querySelector('.rating-low').value;
-            question.highLabel = el.querySelector('.rating-high').value;
-          }
-          
-          questions.push(question);
-        });
-        
-        if (questions.length === 0) {
-          throw new Error('At least one question is required');
+          formObject.questions.push(question);
         }
         
-        // Build form object
-        const formObject = {
-          id: formId,
-          title,
-          description,
-          isMultiStep: isMultiStepEnabled,
-          steps,
-          questions
-        };
+        console.log('Form object:', formObject); // For debugging
         
-        // Send to server
+        // Send form data to server
+        const formId = document.getElementById('form-id').value;
         const response = await fetch(`/admin/forms/${formId}`, {
           method: 'PUT',
           headers: {
@@ -688,11 +593,449 @@
         saveBtn.innerHTML = originalText;
         
         // Show error message
-        const errorEl = document.getElementById('form-error');
-        errorEl.textContent = error.message || 'Failed to update form. Please try again.';
-        errorEl.classList.remove('d-none');
-        errorEl.scrollIntoView({ behavior: 'smooth' });
+        alert(error.message || 'Failed to update form. Please try again.');
       }
     });
+    
+    // Cancel button handler
+    cancelBtn.addEventListener('click', function() {
+      if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+        window.location.href = '/admin/forms';
+      }
+    });
+    
+    // Event delegation for dynamic elements
+    document.addEventListener('click', function(e) {
+      // Delete question button
+      if (e.target.closest('.delete-question-btn')) {
+        const questionItem = e.target.closest('.question-item');
+        const stepIndex = parseInt(questionItem.dataset.step || "0");
+        
+        // Remove question from array
+        if (questionsByStep[stepIndex]) {
+          const questionIndex = questionsByStep[stepIndex].indexOf(questionItem);
+          if (questionIndex > -1) {
+            questionsByStep[stepIndex].splice(questionIndex, 1);
+          }
+        }
+        
+        questionItem.remove();
+        updatePlaceholders();
+        updateQuestionNumbers();
+        
+        // Show the initial add button if no questions in this step
+        if (document.querySelectorAll(`.question-item[data-step="${currentStep}"]`).length === 0) {
+          document.querySelector('.add-question-placeholder').style.display = 'block';
+        }
+      }
+      
+      // Add question button (between questions)
+      if (e.target.closest('.add-between-btn')) {
+        const placeholder = e.target.closest('.add-question-between');
+        insertPosition = placeholder;
+        questionTypeModal.show();
+      }
+      
+      // Add option button
+      if (e.target.closest('.add-option-btn')) {
+        const optionsList = e.target.closest('.question-options').querySelector('.options-list');
+        addOptionToList(optionsList);
+      }
+      
+      // Delete option button
+      if (e.target.closest('.delete-option-btn')) {
+        const optionItem = e.target.closest('.input-group');
+        const optionsList = optionItem.parentElement;
+        
+        if (optionsList.querySelectorAll('.input-group').length > 1) {
+          optionItem.remove();
+        } else {
+          alert('You must have at least one option');
+        }
+      }
+      
+      // Delete step button
+      if (e.target.closest('.delete-step-btn')) {
+        const stepItem = e.target.closest('.step-item');
+        const stepIndex = parseInt(stepItem.dataset.stepIndex);
+        
+        // Confirm deletion
+        if (confirm(`Are you sure you want to delete Step ${stepIndex + 1}? All questions in this step will also be removed.`)) {
+          // Remove all questions for this step
+          document.querySelectorAll(`.question-item[data-step="${stepIndex}"]`).forEach(item => {
+            item.remove();
+          });
+          
+          // Remove step from tracking
+          delete questionsByStep[stepIndex];
+          
+          // Remove from dropdown
+          currentStepSelect.querySelector(`option[value="${stepIndex}"]`).remove();
+          
+          // Remove the step
+          stepItem.remove();
+          
+          // If we deleted the current step, switch to the first step
+          if (currentStep === stepIndex) {
+            currentStepSelect.value = 0;
+            currentStep = 0;
+          }
+          
+          // Update the display
+          displayQuestionsForCurrentStep();
+          updateStepsMode();
+        }
+      }
+    });
+    
+    // Question type change handler (event delegation)
+    document.addEventListener('change', function(e) {
+      if (e.target.classList.contains('question-type-select')) {
+        const questionItem = e.target.closest('.question-item');
+        const questionType = e.target.value;
+        
+        // Update data attribute
+        questionItem.dataset.type = questionType;
+        
+        // Get options container
+        const optionsContainer = questionItem.querySelector('.question-options');
+        
+        // Show/hide options based on question type
+        if (['radio', 'checkbox', 'select'].includes(questionType)) {
+          // Regular options for multiple choice questions
+          optionsContainer.style.display = 'block';
+          optionsContainer.querySelector('.options-label').textContent = 'Options';
+          optionsContainer.querySelector('.rating-scale-inputs').style.display = 'none';
+          optionsContainer.querySelector('.options-list').style.display = 'block';
+          optionsContainer.querySelector('.add-option-btn').style.display = 'block';
+          
+          // Add default options if none exist
+          const optionsList = optionsContainer.querySelector('.options-list');
+          if (optionsList.querySelectorAll('.input-group').length === 0) {
+            addOptionToList(optionsList);
+            addOptionToList(optionsList);
+          }
+        } else if (questionType === 'rating') {
+          // Rating scale gets min/max inputs
+          optionsContainer.style.display = 'block';
+          optionsContainer.querySelector('.options-label').textContent = 'Rating Scale';
+          optionsContainer.querySelector('.rating-scale-inputs').style.display = 'flex';
+          optionsContainer.querySelector('.options-list').style.display = 'none';
+          optionsContainer.querySelector('.add-option-btn').style.display = 'none';
+        } else {
+          // Text inputs get no options
+          optionsContainer.style.display = 'none';
+        }
+      }
+    });
+    
+    // Function to add a new question of the specified type
+    function addQuestion(type, insertAfterElement = null) {
+      // Create question container
+      const questionItem = document.createElement('div');
+      questionItem.className = 'question-item mb-4';
+      questionItem.dataset.type = type;
+      questionItem.dataset.index = questionCount;
+      questionItem.dataset.step = currentStep.toString();
+      
+      // Add to tracking
+      if (!questionsByStep[currentStep]) {
+        questionsByStep[currentStep] = [];
+      }
+      questionsByStep[currentStep].push(questionItem);
+      
+      // Create basic question structure
+      questionItem.innerHTML = `
+        <div class="card">
+          <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+            <span class="question-number">Question ${questionCount + 1}</span>
+            <div>
+              <select class="form-select-sm question-type-select">
+                <option value="text" ${type === 'text' ? 'selected' : ''}>Text Input</option>
+                <option value="textarea" ${type === 'textarea' ? 'selected' : ''}>Long Text</option>
+                <option value="radio" ${type === 'radio' ? 'selected' : ''}>Single Choice</option>
+                <option value="checkbox" ${type === 'checkbox' ? 'selected' : ''}>Multiple Choice</option>
+                <option value="select" ${type === 'select' ? 'selected' : ''}>Dropdown</option>
+                <option value="rating" ${type === 'rating' ? 'selected' : ''}>Rating Scale</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-outline-danger delete-question-btn ms-2">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Question Text</label>
+              <input type="text" class="form-control question-text" name="questions[${questionCount}][text]" required>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Help Text (Optional)</label>
+              <input type="text" class="form-control question-help" name="questions[${questionCount}][help]">
+              <div class="form-text">Additional instructions for this question</div>
+            </div>
+            
+            <div class="question-options" style="display: ${['radio', 'checkbox', 'select', 'rating'].includes(type) ? 'block' : 'none'}">
+              <label class="form-label options-label">${type === 'rating' ? 'Rating Scale' : 'Options'}</label>
+              
+              <!-- Rating scale min/max inputs -->
+              <div class="rating-scale-inputs row mb-2" style="display: ${type === 'rating' ? 'flex' : 'none'}">
+                <div class="col-md-6">
+                  <label class="form-label small">Minimum Value</label>
+                  <input type="number" class="form-control form-control-sm rating-min" value="1" min="0" max="10">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small">Maximum Value</label>
+                  <input type="number" class="form-control form-control-sm rating-max" value="5" min="1" max="10">
+                </div>
+              </div>
+              
+              <!-- Regular options list for other question types -->
+              <div class="options-list mb-2" style="display: ${type === 'rating' ? 'none' : 'block'}">
+                <!-- Options will be added here -->
+              </div>
+              
+              <!-- Add option button (not shown for rating scale) -->
+              <button type="button" class="btn btn-sm btn-outline-secondary add-option-btn" style="display: ${type === 'rating' ? 'none' : 'block'}">
+                <i class="fas fa-plus"></i> Add Option
+              </button>
+            </div>
+            
+            <div class="form-check mt-3">
+              <input class="form-check-input question-required" type="checkbox" name="questions[${questionCount}][required]" id="question-required-${questionCount}">
+              <label class="form-check-label" for="question-required-${questionCount}">
+                This question is required
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Add options if needed
+      if (['radio', 'checkbox', 'select'].includes(type)) {
+        const optionsList = questionItem.querySelector('.options-list');
+        addOptionToList(optionsList);
+        addOptionToList(optionsList);
+      }
+      
+      // Insert at specific position or append to the end
+      if (insertAfterElement) {
+        insertAfterElement.parentNode.insertBefore(questionItem, insertAfterElement.nextSibling);
+      } else {
+        questionsContainer.appendChild(questionItem);
+      }
+      
+      // Hide initial add button since we now have questions
+      document.querySelector('.add-question-placeholder').style.display = 'none';
+      
+      // Increment question counter
+      questionCount++;
+      
+      // Update placeholders and question numbers
+      updatePlaceholders();
+      updateQuestionNumbers();
+      
+      // Update display based on steps mode
+      displayQuestionsForCurrentStep();
+    }
+    
+    // Add a new option to the options list
+    function addOptionToList(optionsList) {
+      const optionCount = optionsList.querySelectorAll('.input-group').length;
+      
+      const optionGroup = document.createElement('div');
+      optionGroup.className = 'input-group mb-2';
+      
+      optionGroup.innerHTML = `
+        <input type="text" class="form-control" placeholder="Option ${optionCount + 1}">
+        <button class="btn btn-outline-danger delete-option-btn" type="button">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      
+      optionsList.appendChild(optionGroup);
+    }
+    
+    // Update question placeholders for adding questions between existing ones
+    function updatePlaceholders() {
+      // Remove existing placeholders
+      document.querySelectorAll('.add-question-between').forEach(p => p.remove());
+      
+      // Add new placeholders between questions
+      const questions = document.querySelectorAll('.question-item');
+      
+      if (questions.length > 0) {
+        // Add placeholders between questions
+        for (let i = 0; i < questions.length; i++) {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'add-question-between';
+          placeholder.innerHTML = `
+            <button type="button" class="btn btn-sm btn-outline-primary add-between-btn add-between-hint">
+              <i class="fas fa-plus"></i> Add Question
+            </button>
+          `;
+          
+          questions[i].after(placeholder);
+        }
+      }
+    }
+    
+    // Update question numbers for all questions
+    function updateQuestionNumbers() {
+      document.querySelectorAll('.question-item').forEach((item, index) => {
+        // Update question number display
+        item.querySelector('.question-number').textContent = `Question ${index + 1}`;
+        
+        // Update data index
+        item.dataset.index = index;
+        
+        // Update form field names
+        item.querySelectorAll('[name^="questions["]').forEach(field => {
+          field.name = field.name.replace(/questions\[\d+\]/, `questions[${index}]`);
+        });
+        
+        // Update required checkbox ID
+        const requiredCheckbox = item.querySelector('.question-required');
+        requiredCheckbox.id = `question-required-${index}`;
+        item.querySelector('.form-check-label').setAttribute('for', `question-required-${index}`);
+      });
+    }
+    
+    // Initialize display
+    displayQuestionsForCurrentStep();
+    updatePlaceholders();
   });
-</script> 
+</script>
+
+<style>
+  /* Form styling */
+  .question-item {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+  
+  .question-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .question-item .card-header {
+    background-color: #f8f9fa;
+  }
+  
+  /* Placeholder styling */
+  .add-question-between {
+    position: relative;
+    height: 40px;
+    margin: 16px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .add-between-hint {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+  }
+  
+  .add-question-between:hover .add-between-hint,
+  .add-question-between:focus-within .add-between-hint {
+    opacity: 1;
+  }
+  
+  .add-question-between:hover::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #f0f0f0;
+    z-index: 1;
+  }
+  
+  .add-between-btn {
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Add question placeholder */
+  .add-question-placeholder {
+    min-height: 100px;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+  }
+  
+  .add-question-placeholder:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+  }
+  
+  /* Question type modal styling */
+  .question-type-option {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    text-align: center;
+  }
+  
+  .question-type-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: #007bff;
+  }
+  
+  .question-type-option .icon-box {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .question-type-option .icon-box i {
+    font-size: 1.25rem;
+  }
+
+  /* Ensure all card titles in the question type modal are centered */
+  .question-type-option .card-title {
+    text-align: center !important;
+    font-weight: 600;
+    width: 100%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .question-type-option .card-text {
+    text-align: center !important;
+    width: 100%;
+    display: block;
+  }
+
+  .question-type-option .card-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Background colors for various question types */
+  .bg-light-primary { background-color: rgba(0, 123, 255, 0.1); }
+  .bg-light-secondary { background-color: rgba(108, 117, 125, 0.1); }
+  .bg-light-success { background-color: rgba(40, 167, 69, 0.1); }
+  .bg-light-danger { background-color: rgba(220, 53, 69, 0.1); }
+  .bg-light-warning { background-color: rgba(255, 193, 7, 0.1); }
+  .bg-light-info { background-color: rgba(23, 162, 184, 0.1); }
+</style> 

@@ -5,7 +5,10 @@ CREATE TABLE IF NOT EXISTS admins (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255),
+  invitation_token VARCHAR(255),
+  invitation_token_expiry TIMESTAMP,
+  is_active BOOLEAN DEFAULT FALSE,
   reset_token VARCHAR(255),
   reset_token_expiry TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -80,6 +83,15 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create remember_tokens table if it doesn't exist
+CREATE TABLE IF NOT EXISTS remember_tokens (
+  id SERIAL PRIMARY KEY,
+  admin_id INTEGER REFERENCES admins(id) ON DELETE CASCADE,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Add indexes if they don't exist
 DO $$
 BEGIN
@@ -103,12 +115,36 @@ BEGIN
     ) THEN
         CREATE INDEX idx_admin_reset_token ON admins(reset_token);
     END IF;
+
+    -- Add an index on admin invitation token for faster lookups
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes WHERE indexname = 'idx_admin_invitation_token'
+    ) THEN
+        CREATE INDEX idx_admin_invitation_token ON admins(invitation_token);
+    END IF;
+
+    -- Add an index on remember tokens for faster lookups
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes WHERE indexname = 'idx_remember_tokens_token'
+    ) THEN
+        CREATE INDEX idx_remember_tokens_token ON remember_tokens(token);
+    END IF;
+
+    -- Add an index on remember tokens expiry for cleanup
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes WHERE indexname = 'idx_remember_tokens_expires'
+    ) THEN
+        CREATE INDEX idx_remember_tokens_expires ON remember_tokens(expires_at);
+    END IF;
 END $$;
 
 -- Check if admin user exists, if not add it (password: admin123)
-INSERT INTO admins (username, email, password_hash)
-SELECT 'admin', 'admin@example.com', '$2b$10$rMYQMgw3LHmKWJgMYdM5qem/mKv91OjsKtODws.JJx7FP0HiXvXI6'
+INSERT INTO admins (username, email, password_hash, is_active)
+SELECT 'admin', 'admin@example.com', '$2b$10$rMYQMgw3LHmKWJgMYdM5qem/mKv91OjsKtODws.JJx7FP0HiXvXI6', TRUE
 WHERE NOT EXISTS (SELECT 1 FROM admins WHERE username = 'admin');
+
+-- Update existing admin user to be active (in case the schema was updated)
+UPDATE admins SET is_active = TRUE WHERE username = 'admin' AND password_hash IS NOT NULL;
 
 -- Create the update_modified_column function if it doesn't exist
 CREATE OR REPLACE FUNCTION update_modified_column()

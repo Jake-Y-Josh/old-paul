@@ -48,6 +48,11 @@ router.post('/forgot-password', isNotAuthenticated, adminController.forgotPasswo
 router.get('/reset-password/:token', isNotAuthenticated, adminController.resetPasswordPage);
 router.post('/reset-password/:token', isNotAuthenticated, adminController.resetPassword);
 
+// Invitation routes
+const userController = require('../controllers/userController');
+router.get('/accept-invitation', isNotAuthenticated, userController.acceptInvitationPage);
+router.post('/accept-invitation', isNotAuthenticated, userController.acceptInvitation);
+
 // Dashboard
 router.get('/dashboard', isAuthenticated, adminController.dashboard);
 

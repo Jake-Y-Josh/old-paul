@@ -1,6 +1,7 @@
 const Admin = require('../models/admin');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const { sendInvitationEmail } = require('../utils/mailer');
 
 /**
  * User Management Controller for admin panel
@@ -45,20 +46,13 @@ const createUserPage = (req, res) => {
 // Create a new user
 const createUser = async (req, res) => {
   try {
-    const { username, email, password, confirm_password } = req.body;
+    const { username, email } = req.body;
     
     // Validate inputs
-    if (!username || !email || !password) {
+    if (!username || !email) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required'
-      });
-    }
-    
-    if (password !== confirm_password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match'
+        message: 'Username and email are required'
       });
     }
     
@@ -80,8 +74,32 @@ const createUser = async (req, res) => {
       });
     }
     
-    // Create new user
-    await Admin.create(username, email, password);
+    // Generate invitation token
+    const invitationToken = crypto.randomBytes(32).toString('hex');
+    const invitationExpiry = new Date();
+    invitationExpiry.setHours(invitationExpiry.getHours() + 24); // 24 hours from now
+    
+    // Create new user with invitation token
+    const newAdmin = await Admin.createWithInvitation(username, email, invitationToken, invitationExpiry);
+    
+    // Build invitation link
+    const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    const invitationLink = `${baseUrl}/admin/accept-invitation?token=${invitationToken}`;
+    
+    // Send invitation email
+    const emailResult = await sendInvitationEmail({
+      to: email,
+      username: username,
+      invitationLink: invitationLink
+    });
+    
+    if (!emailResult.success) {
+      console.error('Failed to send invitation email:', emailResult.error);
+      return res.status(500).json({
+        success: false,
+        message: 'User created but failed to send invitation email. Please try resending the invitation.'
+      });
+    }
     
     // Log activity
     if (req.session && req.session.adminId) {
@@ -89,21 +107,21 @@ const createUser = async (req, res) => {
       await Activity.log({
         admin_id: req.session.adminId,
         action: 'create_user',
-        details: `Created new user: ${username}`,
+        details: `Sent invitation to new user: ${username} (${email})`,
         ip_address: req.ip
       });
     }
     
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
-      redirect: '/admin/users?success=User created successfully'
+      message: 'Invitation sent successfully',
+      redirect: '/admin/users?success=Invitation sent successfully'
     });
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create user'
+      message: 'Failed to send invitation'
     });
   }
 };
@@ -297,11 +315,125 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Render invitation acceptance page
+const acceptInvitationPage = async (req, res) => {
+  try {
+    const token = req.query.token;
+    
+    if (!token) {
+      return res.render('admin/accept-invitation', {
+        title: 'Set Your Password',
+        error: 'No invitation token provided',
+        user: null,
+        token: null
+      });
+    }
+    
+    // Find admin by invitation token
+    const admin = await Admin.findByInvitationToken(token);
+    
+    if (!admin) {
+      return res.render('admin/accept-invitation', {
+        title: 'Set Your Password',
+        error: 'Invalid or expired invitation token',
+        user: null,
+        token: null
+      });
+    }
+    
+    res.render('admin/accept-invitation', {
+      title: 'Set Your Password',
+      error: null,
+      user: admin,
+      token: token
+    });
+  } catch (error) {
+    console.error('Error loading invitation page:', error);
+    res.render('admin/accept-invitation', {
+      title: 'Set Your Password',
+      error: 'An error occurred while loading the invitation',
+      user: null,
+      token: null
+    });
+  }
+};
+
+// Accept invitation and set password
+const acceptInvitation = async (req, res) => {
+  try {
+    const { token, password, confirmPassword } = req.body;
+    
+    // Validate inputs
+    if (!token || !password || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required'
+      });
+    }
+    
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passwords do not match'
+      });
+    }
+    
+    // Validate password requirements
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])(?=.{8,})/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password does not meet security requirements'
+      });
+    }
+    
+    // Find admin by invitation token
+    const admin = await Admin.findByInvitationToken(token);
+    
+    if (!admin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired invitation token'
+      });
+    }
+    
+    // Hash the password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    
+    // Accept invitation and set password
+    await Admin.acceptInvitation(admin.id, passwordHash);
+    
+    // Log activity
+    const Activity = require('../models/activity');
+    await Activity.log({
+      admin_id: admin.id,
+      action: 'accept_invitation',
+      details: `User ${admin.username} accepted invitation and set password`,
+      ip_address: req.ip
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Password set successfully. You can now log in.',
+      redirect: '/admin/login?success=Password set successfully. Please log in.'
+    });
+  } catch (error) {
+    console.error('Error accepting invitation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to set password'
+    });
+  }
+};
+
 module.exports = {
   listUsers,
   createUserPage,
   createUser,
   editUserPage,
   updateUser,
-  deleteUser
+  deleteUser,
+  acceptInvitationPage,
+  acceptInvitation
 }; 

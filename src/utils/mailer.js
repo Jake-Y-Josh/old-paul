@@ -494,6 +494,111 @@ const sendSubmissionNotificationEmail = async (options) => {
 };
 
 /**
+ * Send an invitation email to a new admin user
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.username - Username for the new admin
+ * @param {string} options.invitationLink - Invitation link URL
+ * @returns {Promise<Object>} - Email send result
+ */
+const sendInvitationEmail = async (options) => {
+  try {
+    const { to, username, invitationLink } = options;
+    
+    console.log('[INVITATION EMAIL] Starting invitation email for:', to);
+    
+    // Get the latest email config (from database or env vars)
+    const config = await getEmailConfig();
+    console.log('[INVITATION EMAIL] Email config:', config);
+    
+    // Email content
+    const mailOptions = {
+      from: `"${config.fromName}" <${config.fromEmail}>`,
+      to: to,
+      replyTo: config.replyTo,
+      subject: 'Welcome to Dynamic FP - Set Your Password',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://dynamic-fp.co.uk/wp-content/uploads/2023/03/Dynamic-FP-Logo.png" alt="Dynamic FP" style="max-width: 200px;">
+          </div>
+          <h2 style="color: #00546c; margin-bottom: 20px;">Welcome to Dynamic FP Feedback System</h2>
+          <p>Hello <strong>${username}</strong>,</p>
+          <p>You have been invited to join the Dynamic FP Feedback System as an administrator. To complete your account setup, please create your password.</p>
+          <p>To set your password and activate your account, click the button below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${invitationLink}" style="background-color: #ff5204; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Set Password</a>
+          </div>
+          <p>Or copy and paste this link into your browser:</p>
+          <p><a href="${invitationLink}" style="color: #00546c; word-break: break-all;">${invitationLink}</a></p>
+          <p><strong>Password Requirements:</strong></p>
+          <ul style="color: #666; font-size: 14px;">
+            <li>At least 8 characters long</li>
+            <li>At least one uppercase letter</li>
+            <li>At least one lowercase letter</li>
+            <li>At least one number</li>
+            <li>At least one special character (!@#$%^&*)</li>
+          </ul>
+          <p>This invitation link will expire in 24 hours for security reasons.</p>
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 12px;">
+            <p>This email was sent from Dynamic FP Feedback System. If you have any questions, please contact us at ${config.replyTo}</p>
+            <p>If you did not expect this invitation, please contact the system administrator immediately.</p>
+          </div>
+        </div>
+      `
+    };
+    
+    // Track success for fallback
+    let success = false;
+    let messageId = '';
+    
+    try {
+      // Try to send the email
+      const info = await transporter.sendMail(mailOptions);
+      success = true;
+      messageId = info.messageId;
+    } catch (emailError) {
+      console.error('Transporter error sending invitation email:', emailError);
+      console.error('Full error details:', {
+        message: emailError.message,
+        code: emailError.code,
+        response: emailError.response,
+        responseCode: emailError.responseCode
+      });
+      
+      // Always throw the error so we can see what's wrong
+      throw emailError;
+    }
+    
+    // Log the email
+    await logEmail({
+      recipient: to,
+      to_email: to,
+      subject: mailOptions.subject,
+      message_id: messageId,
+      status: success ? 'sent' : 'failed',
+      type: 'invitation'
+    });
+    
+    return { success, messageId };
+  } catch (error) {
+    console.error('Error sending invitation email:', error);
+    
+    // Log the failed email
+    await logEmail({
+      recipient: options.to,
+      to_email: options.to,
+      subject: 'Welcome to Dynamic FP - Set Your Password',
+      status: 'failed',
+      error: error.message,
+      type: 'invitation'
+    });
+    
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Send a test email to verify configuration
  * @param {string} testEmail - Email address to send test to
  * @returns {Promise<Object>} - Test result
@@ -541,5 +646,6 @@ module.exports = {
   sendFeedbackFormEmail,
   sendPasswordResetEmail,
   sendSubmissionNotificationEmail,
+  sendInvitationEmail,
   sendTestEmail
 }; 
