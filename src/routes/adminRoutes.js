@@ -66,6 +66,8 @@ router.get('/forms/:id/submissions', isAuthenticated, formController.viewSubmiss
 router.get('/clients', isAuthenticated, clientController.listClients);
 router.get('/clients/upload', isAuthenticated, clientController.showUploadForm);
 router.post('/clients/upload', isAuthenticated, upload.single('file'), clientController.uploadClients);
+router.get('/clients/import-preview', isAuthenticated, clientController.showImportPreview);
+router.post('/clients/import-confirm', isAuthenticated, clientController.confirmImport);
 router.post('/clients/create', isAuthenticated, clientController.createClient);
 router.put('/clients/:id', isAuthenticated, clientController.updateClient);
 router.delete('/clients/:id', isAuthenticated, clientController.deleteClient);
@@ -89,6 +91,8 @@ router.use('/users', userRoutes);
 
 // Settings routes
 router.get('/settings', isAuthenticated, settingsController.showSettings);
+router.post('/settings/update', isAuthenticated, settingsController.updateSettings);
 router.post('/settings/email', isAuthenticated, settingsController.updateEmailSettings);
+router.post('/settings/test-email', isAuthenticated, settingsController.testEmailConfig);
 
 module.exports = router; 

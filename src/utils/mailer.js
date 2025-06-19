@@ -493,9 +493,53 @@ const sendSubmissionNotificationEmail = async (options) => {
   }
 };
 
+/**
+ * Send a test email to verify configuration
+ * @param {string} testEmail - Email address to send test to
+ * @returns {Promise<Object>} - Test result
+ */
+const sendTestEmail = async (testEmail) => {
+  try {
+    // First verify the transporter
+    const verified = await verifyTransporter();
+    if (!verified) {
+      return { success: false, error: 'SMTP connection failed' };
+    }
+    
+    // Get the latest email config (from database or env vars)
+    const config = await getEmailConfig();
+    
+    // Send test email
+    const info = await transporter.sendMail({
+      from: `"${config.fromName}" <${config.fromEmail}>`,
+      to: testEmail,
+      replyTo: config.replyTo,
+      subject: 'Test Email - Dynamic FP Feedback System',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #00546c;">Test Email Successful</h2>
+          <p>This is a test email from the Dynamic FP Feedback System.</p>
+          <p>If you received this email, your email configuration is working correctly.</p>
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
+          <p style="color: #666; font-size: 12px;">
+            Email sent from: ${config.fromEmail}<br>
+            Reply-to: ${config.replyTo}
+          </p>
+        </div>
+      `
+    });
+    
+    return { success: true, message: 'Test email sent successfully' };
+  } catch (error) {
+    console.error('Error sending test email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   verifyTransporter,
   sendFeedbackFormEmail,
   sendPasswordResetEmail,
-  sendSubmissionNotificationEmail
+  sendSubmissionNotificationEmail,
+  sendTestEmail
 }; 
