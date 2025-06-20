@@ -1,12 +1,12 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
-const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const ejsLayouts = require('express-ejs-layouts');
 const flash = require('connect-flash');
-require('dotenv').config();
 
 // Import routes
 const adminRoutes = require('./routes/adminRoutes');
@@ -35,8 +35,8 @@ app.set('layout', 'layouts/main');
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
 // Use a default session secret if not provided (for development only)
@@ -47,7 +47,7 @@ const sessionConfig = {
   resave: false,
   saveUninitialized: true, // Changed to true to ensure session IDs are assigned
   cookie: {
-    secure: false, // Set to false to work with HTTP in production temporarily
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax' // Added sameSite: 'lax' for better security
@@ -135,6 +135,30 @@ app.get('/test-db', async (req, res) => {
   res.json(results);
 });
 
+// Test endpoint to check admin accounts
+app.get('/test-admins', async (req, res) => {
+  console.log('=== TEST ADMIN ACCOUNTS ===');
+  try {
+    const admins = await db.query('SELECT id, username, email, created_at FROM admins ORDER BY id');
+    res.json({
+      success: true,
+      count: admins.rows.length,
+      admins: admins.rows.map(admin => ({
+        id: admin.id,
+        username: admin.username,
+        email: admin.email,
+        created_at: admin.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('Admin test error:', error);
+    res.json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Routes
 app.use('/admin', adminRoutes);
 app.use('/', feedbackRoutes);
@@ -145,34 +169,6 @@ app.get('/', (req, res) => {
   res.render('public/home', {
     title: 'Home',
     layout: false
-  });
-});
-
-// Debug session route (only in development or with DEBUG env var)
-app.get('/debug-session', (req, res) => {
-  // Only show debug info if in development or DEBUG is set
-  if (process.env.NODE_ENV === 'production' && !process.env.DEBUG) {
-    return res.redirect('/');
-  }
-  
-  // Get relevant details without exposing sensitive info
-  const sessionInfo = {
-    id: req.session.id,
-    cookie: req.session.cookie,
-    adminId: req.session.adminId || 'Not set',
-    username: req.session.username || 'Not set',
-    authenticated: req.session.authenticated || false,
-    env: process.env.NODE_ENV || 'development',
-    session_name: process.env.SESS_NAME || 'default',
-    has_session_secret: process.env.SESSION_SECRET ? true : false,
-    session_secret_length: process.env.SESSION_SECRET ? process.env.SESSION_SECRET.length : 0,
-    timestamp: new Date().toISOString()
-  };
-  
-  res.json({
-    message: 'Session debug information',
-    supabase_url: process.env.SUPABASE_URL || 'Not set',
-    session: sessionInfo
   });
 });
 
@@ -227,4 +223,4 @@ if (!process.env.VERCEL) {
 }
 
 // Export the app for Vercel
-module.exports = app; 
+module.exports = app;
