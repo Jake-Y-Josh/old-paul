@@ -11,10 +11,5 @@
       "src": "/(.*)",
       "dest": "index.js"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "SUPABASE_URL": "https://hsacflpklcasjgffgzwd.supabase.co",
-    "SUPABASE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzYWNmbHBrbGNhc2pnZmZnendkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2ODEyMjgsImV4cCI6MjA1NzI1NzIyOH0.jyZb70tFxskfVI_VOs_DJU6NRXe6jVZE_qCT1t09ExU"
-  }
+  ]
 } 

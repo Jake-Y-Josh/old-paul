@@ -13,8 +13,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
 
-// Import database - use Supabase client
-const db = require('./database/supabase');
+// Import database
+const db = require('./database/db');
 
 // Create Express app
 const app = express();
