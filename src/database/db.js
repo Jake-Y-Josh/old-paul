@@ -1042,6 +1042,16 @@ const initDb = async () => {
       };
     }
     
+    // Skip initialization for production environment
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV) {
+      console.log('Production environment detected - skipping database initialization');
+      return {
+        success: true,
+        pool,
+        query
+      };
+    }
+    
     // Check if tables already exist
     const tablesExist = await checkTablesExist();
     
