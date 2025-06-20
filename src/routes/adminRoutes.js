@@ -45,8 +45,8 @@ router.get('/logout', adminController.logout);
 // Password reset routes
 router.get('/forgot-password', isNotAuthenticated, adminController.forgotPasswordPage);
 router.post('/forgot-password', isNotAuthenticated, adminController.forgotPassword);
-router.get('/reset-password/:token', isNotAuthenticated, adminController.resetPasswordPage);
-router.post('/reset-password/:token', isNotAuthenticated, adminController.resetPassword);
+router.get('/reset-password', isNotAuthenticated, adminController.resetPasswordPage); // Supabase uses query params
+router.post('/reset-password', isNotAuthenticated, adminController.resetPassword);
 
 // Invitation routes
 const userController = require('../controllers/userController');

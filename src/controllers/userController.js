@@ -2,6 +2,7 @@ const Admin = require('../models/admin');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const { sendInvitationEmail } = require('../utils/mailer');
+const { supabase } = require('../database/supabase');
 
 /**
  * User Management Controller for admin panel
@@ -74,32 +75,29 @@ const createUser = async (req, res) => {
       });
     }
     
-    // Generate invitation token
-    const invitationToken = crypto.randomBytes(32).toString('hex');
-    const invitationExpiry = new Date();
-    invitationExpiry.setHours(invitationExpiry.getHours() + 24); // 24 hours from now
-    
-    // Create new user with invitation token
-    const newAdmin = await Admin.createWithInvitation(username, email, invitationToken, invitationExpiry);
-    
-    // Build invitation link
-    const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
-    const invitationLink = `${baseUrl}/admin/accept-invitation?token=${invitationToken}`;
-    
-    // Send invitation email
-    const emailResult = await sendInvitationEmail({
-      to: email,
-      username: username,
-      invitationLink: invitationLink
+    // Use Supabase Auth to send invitation email
+    const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+      data: {
+        username: username,
+        invited_by: req.session.username
+      },
+      redirectTo: `${req.protocol}://${req.get('host')}/admin/accept-invitation`
     });
     
-    if (!emailResult.success) {
-      console.error('Failed to send invitation email:', emailResult.error);
+    if (inviteError) {
+      console.error('Supabase invite error:', inviteError);
       return res.status(500).json({
         success: false,
-        message: 'User created but failed to send invitation email. Please try resending the invitation.'
+        message: 'Failed to send invitation'
       });
     }
+    
+    // Create the admin record in our database (without password)
+    const invitationToken = crypto.randomBytes(32).toString('hex');
+    const invitationExpiry = new Date();
+    invitationExpiry.setHours(invitationExpiry.getHours() + 24);
+    
+    const newAdmin = await Admin.createWithInvitation(username, email, invitationToken, invitationExpiry);
     
     // Log activity
     if (req.session && req.session.adminId) {
@@ -115,7 +113,7 @@ const createUser = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      message: 'Invitation sent successfully',
+      message: 'Invitation sent successfully via Supabase Auth',
       redirect: '/admin/users?success=Invitation sent successfully'
     });
   } catch (error) {
@@ -362,9 +360,69 @@ const acceptInvitationPage = async (req, res) => {
 // Accept invitation and set password
 const acceptInvitation = async (req, res) => {
   try {
-    const { token, password, confirmPassword } = req.body;
+    const { token, password, confirmPassword, access_token } = req.body;
     
-    // Validate inputs
+    // For Supabase Auth invitations, we use the access_token from the invite link
+    if (access_token) {
+      // Validate inputs
+      if (!password || !confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password and confirmation are required'
+        });
+      }
+      
+      if (password !== confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Passwords do not match'
+        });
+      }
+      
+      // Use Supabase Auth to update the password
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      }, {
+        accessToken: access_token
+      });
+      
+      if (error) {
+        console.error('Supabase password update error:', error);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to set password. The invitation link may be expired.'
+        });
+      }
+      
+      // Get user info from the access token to update our database
+      const { data: { user } } = await supabase.auth.getUser(access_token);
+      if (user && user.email) {
+        const admin = await Admin.getByEmail(user.email);
+        if (admin) {
+          const saltRounds = 10;
+          const passwordHash = await bcrypt.hash(password, saltRounds);
+          await Admin.acceptInvitation(admin.id, passwordHash);
+          
+          // Log activity
+          const Activity = require('../models/activity');
+          await Activity.log({
+            admin_id: admin.id,
+            action: 'accept_invitation',
+            entity_type: 'user',
+            entity_id: admin.id,
+            details: `User ${admin.username} accepted invitation and set password`
+          });
+        }
+      }
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Password set successfully. You can now log in.',
+        redirect: '/admin/login?success=Password set successfully. Please log in.'
+      });
+    }
+    
+    // Fallback to old token-based system for backward compatibility
     if (!token || !password || !confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -376,15 +434,6 @@ const acceptInvitation = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Passwords do not match'
-      });
-    }
-    
-    // Validate password requirements
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])(?=.{8,})/;
-    if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password does not meet security requirements'
       });
     }
     

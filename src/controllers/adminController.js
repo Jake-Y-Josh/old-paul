@@ -9,6 +9,7 @@ const Email = require('../models/email');
 const Activity = require('../models/activity');
 const EmailLog = require('../models/emailLog');
 const RememberToken = require('../models/rememberToken');
+const { supabase } = require('../database/supabase');
 
 /**
  * Admin Controller
@@ -23,7 +24,7 @@ const loginPage = async (req, res) => {
   let supabaseStatus = 'Unknown';
   try {
     const { supabase } = require('../database/supabase');
-    const { data, error } = await supabase.from('admins').select('count').limit(1);
+    const { error } = await supabase.from('admins').select('count').limit(1);
     supabaseStatus = error ? 'Error: ' + error.message : 'Connected';
   } catch (err) {
     supabaseStatus = 'Error: ' + err.message;
@@ -55,170 +56,128 @@ const login = async (req, res) => {
     
     console.log('=== LOGIN ATTEMPT ===');
     console.log(`Username: ${username}`);
-    console.log(`Session ID: ${req.session.id}`);
-    console.log(`Session secret first 10 chars: ${process.env.SESSION_SECRET ? process.env.SESSION_SECRET.substring(0, 10) + '...' : 'not set'}`);
-    console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-    console.log(`Database URL configured: ${process.env.DATABASE_URL ? 'YES' : 'NO'}`);
-    console.log(`Request headers:`, req.headers);
+    console.log(`Timestamp: ${new Date().toISOString()}`);
+    console.log(`IP Address: ${req.ip}`);
+    console.log(`User Agent: ${req.headers['user-agent']}`);
+    console.log('>>> AUTHENTICATION METHOD: SUPABASE AUTH ONLY <<<');
+    console.log('>>> Old session-based auth is DISABLED <<<');
     
-    // Special handling for default admin account (skip Supabase auth)
-    if (username === 'admin') {
-      if (password === 'admin123') {
-        console.log('Admin login successful using default credentials (skipping Supabase auth)');
-        
-        // Force session regeneration to prevent session fixation
-        req.session.regenerate((err) => {
-          if (err) {
-            console.error('Error regenerating session:', err);
-            req.flash('error', 'Session error. Please try again');
-            return res.redirect('/admin/login');
-          }
-          
-          // Set session variables after regeneration
-          req.session.adminId = 1;
-          req.session.username = 'admin';
-          req.session.authenticated = true;
-          req.session.loginTime = new Date().toISOString();
-          
-          // Handle "Remember Me" functionality
-          if (rememberMe) {
-            // Extend session to 30 days if "Remember Me" is checked
-            req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-            console.log('Remember Me checked: Session extended to 30 days');
-          } else {
-            // Default session duration (24 hours)
-            req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
-            console.log('Remember Me not checked: Session set to 24 hours');
-          }
-
-          req.session.save(async (saveErr) => {
-            if (saveErr) {
-              console.error('Error saving session:', saveErr);
-              req.flash('error', 'Error with session. Please try again');
-              return res.redirect('/admin/login');
-            }
-
-            // Generate remember token if "Remember Me" is checked
-            if (rememberMe) {
-              try {
-                const token = await RememberToken.create(1, 30); // Admin ID 1, valid for 30 days
-                // Set remember token cookie
-                res.cookie('remember_token', token, {
-                  httpOnly: true,
-                  secure: process.env.NODE_ENV === 'production',
-                  sameSite: 'lax',
-                  maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-                });
-                console.log('Remember token created and set in cookie');
-              } catch (tokenError) {
-                console.error('Error creating remember token:', tokenError);
-                // Continue with login even if token creation fails
-              }
-            }
-
-            console.log('Session saved successfully. Session data:', JSON.stringify(req.session));
-            console.log('Redirecting to dashboard.');
-            return res.redirect('/admin/dashboard');
-          });
-        });
-
-        return;
+    // Attempt to sign in with Supabase Auth
+    // First, we need to check if the user exists in the database to get their email
+    let email = username;
+    let admin = null;
+    
+    // Check if username is actually an email
+    if (!username.includes('@')) {
+      // It's a username, so we need to get the email from the database
+      admin = await Admin.getByUsername(username);
+      if (admin) {
+        email = admin.email;
+      } else {
+        console.error(`LOGIN FAILED: username ${username} not found in database`);
+        req.flash('error', 'Invalid username or password');
+        return res.redirect('/admin/login');
       }
-
-      console.log('Admin login failed: incorrect password');
+    }
+    
+    // Use Supabase Auth to sign in
+    console.log(`>>> Attempting Supabase Auth login with email: ${email}`);
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+    
+    if (authError) {
+      console.error('>>> SUPABASE AUTH FAILED:', authError.message);
+      console.error('>>> Auth error details:', authError);
       req.flash('error', 'Invalid username or password');
       return res.redirect('/admin/login');
     }
-
-    // Regular login process
-    try {
-      let admin = await Admin.getByUsername(username);
-
-      // If not found by username, try by email
-      if (!admin) {
-        admin = await Admin.getByEmail(username);
-        if (admin) {
-          console.log(`Found admin by email: ${username}`);
-        }
-      }
-
-      if (!admin) {
-        console.error(`LOGIN FAILED: username/email ${username} not found in database`);
-        req.flash('error', 'Invalid username or password');
-        return res.redirect('/admin/login');
-      }
-
-      // Check password
-      const passwordMatch = await bcrypt.compare(password, admin.password_hash);
-
-      if (!passwordMatch) {
-        console.error(`LOGIN FAILED: incorrect password for ${username}`);
-        req.flash('error', 'Invalid username or password');
-        return res.redirect('/admin/login');
-      }
-
-      // Update last login time
-      try {
-        await Admin.updateLastLogin(admin.id);
-      } catch (updateError) {
-        console.error('Error updating last login:', updateError);
-        // Continue with login even if last login update fails
-      }
-
-      // Set session
-      req.session.adminId = admin.id;
-      req.session.username = admin.username;
-      req.session.authenticated = true;
-      req.session.loginTime = new Date().toISOString();
-      
-      // Handle "Remember Me" functionality
-      if (rememberMe) {
-        // Extend session to 30 days if "Remember Me" is checked
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-        console.log('Remember Me checked: Session extended to 30 days');
-      } else {
-        // Default session duration (24 hours)
-        req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
-        console.log('Remember Me not checked: Session set to 24 hours');
-      }
-
-      // Force session save before redirect
-      req.session.save(async (err) => {
-        if (err) {
-          console.error('Error saving session:', err);
-          req.flash('error', 'Error with session. Please try again');
-          return res.redirect('/admin/login');
-        }
-
-        // Generate remember token if "Remember Me" is checked
-        if (rememberMe) {
-          try {
-            const token = await RememberToken.create(admin.id, 30); // Valid for 30 days
-            // Set remember token cookie
-            res.cookie('remember_token', token, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax',
-              maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-            });
-            console.log('Remember token created and set in cookie');
-          } catch (tokenError) {
-            console.error('Error creating remember token:', tokenError);
-            // Continue with login even if token creation fails
-          }
-        }
-
-        console.log(`Login successful for ${username}`);
-        // Redirect to dashboard
-        return res.redirect('/admin/dashboard');
-      });
-    } catch (adminError) {
-      console.error('=== DATABASE ERROR DURING LOGIN ===');
-      console.error('Error details:', adminError);
-      console.error('Error stack:', adminError.stack);
-      req.flash('error', 'Database error during login');
+    
+    if (!authData || !authData.user) {
+      console.error('No user data returned from Supabase Auth');
+      req.flash('error', 'Authentication failed');
       return res.redirect('/admin/login');
     }
+    
+    // Get admin details from database
+    if (!admin) {
+      admin = await Admin.getByEmail(email);
+    }
+    
+    if (!admin) {
+      // User exists in Supabase Auth but not in our admins table
+      console.error('User authenticated but not found in admins table');
+      req.flash('error', 'Account not authorized for admin access');
+      return res.redirect('/admin/login');
+    }
+    
+    // Update last login time
+    try {
+      await Admin.updateLastLogin(admin.id);
+    } catch (updateError) {
+      console.error('Error updating last login:', updateError);
+      // Continue with login even if last login update fails
+    }
+    
+    // Store Supabase session info
+    req.session.supabaseUserId = authData.user.id;
+    req.session.supabaseAccessToken = authData.session.access_token;
+    req.session.supabaseRefreshToken = authData.session.refresh_token;
+    
+    // Set session variables
+    req.session.adminId = admin.id;
+    req.session.username = admin.username;
+    req.session.authenticated = true;
+    req.session.loginTime = new Date().toISOString();
+    
+    // Handle "Remember Me" functionality
+    if (rememberMe) {
+      // Extend session to 30 days if "Remember Me" is checked
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      console.log('Remember Me checked: Session extended to 30 days');
+    } else {
+      // Default session duration (24 hours)
+      req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours
+      console.log('Remember Me not checked: Session set to 24 hours');
+    }
+    
+    // Force session save before redirect
+    req.session.save(async (err) => {
+      if (err) {
+        console.error('Error saving session:', err);
+        req.flash('error', 'Error with session. Please try again');
+        return res.redirect('/admin/login');
+      }
+      
+      // Generate remember token if "Remember Me" is checked
+      if (rememberMe) {
+        try {
+          const token = await RememberToken.create(admin.id, 30); // Valid for 30 days
+          // Set remember token cookie
+          res.cookie('remember_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+          });
+          console.log('Remember token created and set in cookie');
+        } catch (tokenError) {
+          console.error('Error creating remember token:', tokenError);
+          // Continue with login even if token creation fails
+        }
+      }
+      
+      console.log('>>> LOGIN SUCCESSFUL <<<');
+      console.log(`>>> User: ${username}`);
+      console.log(`>>> Email: ${email}`);
+      console.log(`>>> Supabase User ID: ${req.session.supabaseUserId}`);
+      console.log(`>>> Admin ID: ${req.session.adminId}`);
+      console.log(`>>> Authentication Method: SUPABASE AUTH`);
+      console.log('>>> Redirecting to dashboard...');
+      // Redirect to dashboard
+      return res.redirect('/admin/dashboard');
+    });
   } catch (error) {
     console.error('Login error:', error);
     req.flash('error', 'An error occurred during login');
@@ -228,6 +187,16 @@ const login = async (req, res) => {
 
 // Logout
 const logout = async (req, res) => {
+  // Sign out from Supabase Auth
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error signing out from Supabase:', error);
+    }
+  } catch (supabaseError) {
+    console.error('Supabase signOut error:', supabaseError);
+  }
+  
   // Clear remember token if it exists
   const rememberToken = req.cookies.remember_token;
   if (rememberToken) {
@@ -359,46 +328,33 @@ const forgotPassword = async (req, res) => {
       return res.redirect('/admin/forgot-password?error=Please provide your email address');
     }
     
-    // Check if admin exists with this email
-    let admin = await Admin.getByEmail(email);
+    let actualEmail = email;
     
-    // If not found by email, try by username
-    if (!admin) {
-      console.log(`Admin not found by email ${email}, attempting lookup by username.`);
-      admin = await Admin.getByUsername(email);
+    // Check if input is a username instead of email
+    if (!email.includes('@')) {
+      // Try to find admin by username to get their email
+      const admin = await Admin.getByUsername(email);
       if (admin) {
-        console.log(`Found admin by username: ${admin.username}`);
+        actualEmail = admin.email;
+        console.log(`Found admin by username: ${email}, using email: ${actualEmail}`);
+      } else {
+        // Don't reveal that the username doesn't exist
+        return res.redirect('/admin/forgot-password?success=If your email exists in our system, you will receive password reset instructions');
       }
     }
-
-    if (!admin) {
-      // Don't reveal that the email doesn't exist for security reasons
+    
+    // Use Supabase Auth to send password reset email
+    const { error } = await supabase.auth.resetPasswordForEmail(actualEmail, {
+      redirectTo: `${req.protocol}://${req.get('host')}/admin/reset-password`
+    });
+    
+    if (error) {
+      console.error('Supabase password reset error:', error);
+      // Don't reveal specific errors to prevent user enumeration
       return res.redirect('/admin/forgot-password?success=If your email exists in our system, you will receive password reset instructions');
     }
     
-    // Generate reset token (valid for 1 hour)
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = Date.now() + 3600000; // 1 hour
-    
-    // Save token to database
-    await Admin.setResetToken(admin.id, resetToken, resetTokenExpiry);
-    
-    // Send password reset email
-    const resetLink = `${req.protocol}://${req.get('host')}/admin/reset-password/${resetToken}`;
-    
-    console.log('Sending password reset email to:', admin.email);
-    console.log('Reset link:', resetLink);
-    
-    const emailResult = await sendPasswordResetEmail({
-      to: admin.email,
-      resetLink,
-      adminName: admin.username
-    });
-    
-    if (!emailResult.success) {
-      console.error('Failed to send password reset email:', emailResult.error);
-      return res.redirect('/admin/forgot-password?error=Failed to send password reset email. Please try again.');
-    }
+    console.log('Password reset email sent via Supabase Auth to:', actualEmail);
     
     res.redirect('/admin/forgot-password?success=Password reset instructions have been sent to your email');
   } catch (error) {
@@ -411,22 +367,17 @@ const forgotPassword = async (req, res) => {
 // Render reset password page
 const resetPasswordPage = async (req, res) => {
   try {
-    const { token } = req.params;
+    // For Supabase Auth, the reset token comes as a query parameter from the email link
+    const { access_token, refresh_token, type } = req.query;
     
-    if (!token) {
-      return res.redirect('/admin/forgot-password?error=Invalid reset token');
-    }
-    
-    // Verify token exists and hasn't expired
-    const admin = await Admin.findByResetToken(token);
-    
-    if (!admin) {
-      return res.redirect('/admin/forgot-password?error=Invalid or expired reset token');
+    if (type !== 'recovery' || !access_token) {
+      return res.redirect('/admin/forgot-password?error=Invalid reset link');
     }
     
     res.render('admin/reset-password', {
       title: 'Reset Password',
-      token,
+      access_token,
+      refresh_token,
       error: req.query.error,
       layout: false
     });
@@ -439,29 +390,47 @@ const resetPasswordPage = async (req, res) => {
 // Process reset password
 const resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { password, confirmPassword } = req.body;
+    const { password, confirmPassword, access_token } = req.body;
     
     if (!password || !confirmPassword) {
-      return res.redirect(`/admin/reset-password/${token}?error=Please provide password and confirm password`);
+      return res.redirect(`/admin/reset-password?error=Please provide password and confirm password&access_token=${access_token}&type=recovery`);
     }
     
     if (password !== confirmPassword) {
-      return res.redirect(`/admin/reset-password/${token}?error=Passwords do not match`);
+      return res.redirect(`/admin/reset-password?error=Passwords do not match&access_token=${access_token}&type=recovery`);
     }
     
-    // Verify token is valid
-    const admin = await Admin.findByResetToken(token);
+    if (!access_token) {
+      return res.redirect('/admin/forgot-password?error=Invalid reset link');
+    }
     
-    if (!admin || admin.reset_token_expiry < Date.now()) {
+    // Use Supabase Auth to update the password
+    const { error } = await supabase.auth.updateUser({
+      password: password
+    }, {
+      accessToken: access_token
+    });
+    
+    if (error) {
+      console.error('Supabase password update error:', error);
       return res.redirect('/admin/forgot-password?error=Password reset link is invalid or has expired');
     }
     
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Update password and clear reset token
-    await Admin.updatePassword(admin.id, hashedPassword);
+    // Also update the password hash in our database for consistency
+    try {
+      // Get the user from the access token
+      const { data: { user } } = await supabase.auth.getUser(access_token);
+      if (user && user.email) {
+        const admin = await Admin.getByEmail(user.email);
+        if (admin) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await Admin.updatePassword(admin.id, hashedPassword);
+        }
+      }
+    } catch (dbError) {
+      console.error('Error updating database password:', dbError);
+      // Continue anyway as Supabase Auth is the primary auth system
+    }
     
     res.redirect('/admin/login?success=Your password has been reset successfully');
   } catch (error) {
@@ -501,7 +470,27 @@ const register = async (req, res) => {
       });
     }
     
-    // Create new admin
+    // Create user in Supabase Auth first
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: email,
+      password: password,
+      email_confirm: true, // Auto-confirm for admin-created users
+      user_metadata: {
+        username: username,
+        created_by_admin: true
+      }
+    });
+    
+    if (authError) {
+      console.error('Supabase Auth error:', authError);
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to create authentication account',
+        error: authError.message
+      });
+    }
+    
+    // Create admin in our database
     const admin = await Admin.create(username, email, password);
     
     res.status(201).json({

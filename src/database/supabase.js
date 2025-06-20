@@ -70,49 +70,31 @@ const query = async (table, action, options = {}) => {
   }
 };
 
-// Function to ensure admin user exists
-const ensureAdminExists = async () => {
+// Function to check if any admin exists (removed hardcoded admin creation)
+const checkAdminExists = async () => {
   try {
-    // Default password: admin123
-    // This is the correct bcrypt hash for 'admin123'
-    const passwordHash = '$2b$10$rMYQMgw3LHmKWJgMYdM5qem/mKv91OjsKtODws.JJx7FP0HiXvXI6';
-    
-    // Check if admin user exists
-    const { data: existingAdmins } = await supabase
+    const { data: admins, error } = await supabase
       .from('admins')
-      .select()
-      .eq('username', 'admin');
+      .select('count')
+      .limit(1);
     
-    if (!existingAdmins || existingAdmins.length === 0) {
-      // Admin user doesn't exist, create it
-      const { data: newAdmin, error } = await supabase
-        .from('admins')
-        .insert([
-          {
-            username: 'admin',
-            email: 'admin@example.com',
-            password_hash: passwordHash,
-            created_at: new Date(),
-            updated_at: new Date()
-          }
-        ]);
-      
-      if (error) throw error;
-      
-      console.log('Default admin user created (username: admin, password: admin123)');
-    } else {
-      // Admin exists, but let's update the password hash to make sure it's correct
-      const { error } = await supabase
-        .from('admins')
-        .update({ password_hash: passwordHash })
-        .eq('username', 'admin');
-      
-      if (error) throw error;
-      
-      console.log('Admin user exists - password reset to default (admin123)');
+    if (error) {
+      console.error('Error checking for admins:', error);
+      return false;
     }
+    
+    const hasAdmins = admins && admins.length > 0;
+    if (!hasAdmins) {
+      console.log('>>> WARNING: No admin users exist in the database <<<');
+      console.log('>>> Please run: node migrate-to-supabase-auth.js to create admin users <<<');
+    } else {
+      console.log('>>> Admin users found in database <<<');
+    }
+    
+    return hasAdmins;
   } catch (error) {
-    console.error('Error ensuring admin user exists:', error);
+    console.error('Error checking admin existence:', error);
+    return false;
   }
 };
 
@@ -128,9 +110,11 @@ const initDb = async () => {
     }
     
     console.log('Connected to Supabase successfully');
+    console.log('>>> SUPABASE AUTH IS THE ONLY AUTHENTICATION METHOD <<<');
+    console.log('>>> Hardcoded admin/admin123 has been REMOVED <<<');
     
-    // Ensure admin user exists
-    await ensureAdminExists();
+    // Check if any admin exists (no longer creates default admin)
+    await checkAdminExists();
     
     console.log('Supabase database initialized successfully');
     return {

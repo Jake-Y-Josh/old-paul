@@ -2,16 +2,52 @@
  * Authentication middleware to protect admin routes
  */
 const RememberToken = require('../models/rememberToken');
+const { supabase } = require('../database/supabase');
 
 // Check if user is authenticated
 const isAuthenticated = async (req, res, next) => {
-  console.log('[Auth Middleware] Checking authentication...');
+  console.log('[Auth Middleware] === AUTHENTICATION CHECK ===');
+  console.log('[Auth Middleware] Path:', req.path);
+  console.log('[Auth Middleware] Method:', req.method);
   console.log('[Auth Middleware] Session ID:', req.session.id);
   console.log('[Auth Middleware] Admin ID:', req.session.adminId);
+  console.log('[Auth Middleware] Has Supabase Token:', !!req.session.supabaseAccessToken);
+  console.log('[Auth Middleware] >>> Using SUPABASE AUTH for validation <<<');
   
-  if (req.session && req.session.adminId) {
-    console.log('[Auth Middleware] User is authenticated via session');
-    return next();
+  if (req.session && req.session.adminId && req.session.supabaseAccessToken) {
+    // Validate Supabase session
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser(req.session.supabaseAccessToken);
+      
+      if (error || !user) {
+        console.log('[Auth Middleware] Supabase session invalid:', error?.message);
+        // Try to refresh the session
+        if (req.session.supabaseRefreshToken) {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession({
+            refresh_token: req.session.supabaseRefreshToken
+          });
+          
+          if (!refreshError && refreshData?.session) {
+            // Update session with new tokens
+            req.session.supabaseAccessToken = refreshData.session.access_token;
+            req.session.supabaseRefreshToken = refreshData.session.refresh_token;
+            console.log('[Auth Middleware] Supabase session refreshed successfully');
+            return next();
+          }
+        }
+        
+        // Clear invalid session
+        req.session.destroy();
+        return res.redirect('/admin/login');
+      }
+      
+      console.log('[Auth Middleware] User is authenticated via Supabase session');
+      return next();
+    } catch (error) {
+      console.error('[Auth Middleware] Error validating Supabase session:', error);
+      req.session.destroy();
+      return res.redirect('/admin/login');
+    }
   }
   
   // Check for remember token if no session
