@@ -212,6 +212,17 @@ class Admin {
         invitation_token: null,
         invitation_token_expiry: null,
         is_active: true
+      })
+      .eq('id', adminId)
+      .select();
+    
+    if (error) {
+      console.error('Error accepting invitation:', error);
+      throw error;
+    }
+    
+    return data && data.length > 0 ? data[0] : null;
+  }
   
   // Update last login time
   static async updateLastLogin(adminId) {
