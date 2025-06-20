@@ -12,6 +12,7 @@ require('dotenv').config();
 const adminRoutes = require('./routes/adminRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const submissionRoutes = require('./routes/submissionRoutes');
+const testRoutes = require('./routes/testRoutes');
 
 // Import database - use Supabase client
 const db = require('./database/supabase');
@@ -96,6 +97,7 @@ if (!process.env.VERCEL) {
 app.use('/admin', adminRoutes);
 app.use('/', feedbackRoutes);
 app.use('/admin/submissions', submissionRoutes);
+app.use('/', testRoutes);
 
 // Home route
 app.get('/', (req, res) => {
