@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-passed { color: #28a745; }
+        .test-failed { color: #dc3545; }
+        .test-running { color: #ffc107; }
+        .test-result-card {
+            margin-bottom: 1rem;
+            border-left: 4px solid #dee2e6;
+        }
+        .test-result-card.passed {
+            border-left-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .test-result-card.failed {
+            border-left-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .refresh-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Refresh Button -->
+        <button class="btn btn-primary refresh-btn" onclick="window.location.reload()">
+            <i class="fas fa-sync-alt"></i> Refresh Test
+        </button>
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card summary-card">
+                    <div class="card-body text-center">
+                        <h1 class="card-title mb-3">
+                            <i class="fas fa-database"></i> Database Connectivity Test
+                        </h1>
+                        <p class="card-text">
+                            <strong>Environment:</strong> <%= testResults.environment %> | 
+                            <strong>Test Run:</strong> <%= new Date(testResults.timestamp).toLocaleString() %>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <h2 class="text-primary"><%= testResults.summary.total %></h2>
+                        <p class="text-muted mb-0">Total Tests</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <h2 class="text-success"><%= testResults.summary.passed %></h2>
+                        <p class="text-muted mb-0">Passed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <h2 class="text-danger"><%= testResults.summary.failed %></h2>
+                        <p class="text-muted mb-0">Failed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <h2 class="<%= testResults.summary.successRate >= 80 ? 'text-success' : testResults.summary.successRate >= 50 ? 'text-warning' : 'text-danger' %>">
+                            <%= testResults.summary.successRate %>%
+                        </h2>
+                        <p class="text-muted mb-0">Success Rate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Status Alert -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <% if (testResults.summary.successRate === 100) { %>
+                    <div class="alert alert-success" role="alert">
+                        <i class="fas fa-check-circle"></i> <strong>All tests passed!</strong> Your database connectivity is working perfectly.
+                    </div>
+                <% } else if (testResults.summary.successRate >= 80) { %>
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> <strong>Most tests passed.</strong> Some minor issues detected - check failed tests below.
+                    </div>
+                <% } else { %>
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-times-circle"></i> <strong>Multiple test failures detected.</strong> There may be significant database connectivity issues.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="row">
+            <div class="col-12">
+                <h3 class="mb-3">Test Results</h3>
+                
+                <% testResults.tests.forEach((test, index) => { %>
+                    <div class="card test-result-card <%= test.status %>">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h5 class="card-title">
+                                        <% if (test.status === 'passed') { %>
+                                            <i class="fas fa-check-circle test-passed"></i>
+                                        <% } else if (test.status === 'failed') { %>
+                                            <i class="fas fa-times-circle test-failed"></i>
+                                        <% } else { %>
+                                            <i class="fas fa-spinner fa-spin test-running"></i>
+                                        <% } %>
+                                        <%= test.name %>
+                                    </h5>
+                                    
+                                    <% if (test.result) { %>
+                                        <p class="card-text text-success">
+                                            <strong>Result:</strong> <%= test.result %>
+                                        </p>
+                                    <% } %>
+                                    
+                                    <% if (test.error) { %>
+                                        <div class="alert alert-danger mt-2">
+                                            <strong>Error:</strong> <%= test.error %>
+                                        </div>
+                                    <% } %>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock"></i> <%= test.duration %>ms
+                                    </small>
+                                    <br>
+                                    <span class="badge <%= test.status === 'passed' ? 'bg-success' : test.status === 'failed' ? 'bg-danger' : 'bg-warning' %>">
+                                        <%= test.status.toUpperCase() %>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+
+        <!-- Debug Information -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h3>Debug Information</h3>
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Environment Variables Status:</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>NODE_ENV:</strong> <%= process.env.NODE_ENV || 'undefined' %></li>
+                            <li><strong>DATABASE_URL:</strong> <%= process.env.DATABASE_URL ? 'Set' : 'Not set' %></li>
+                            <li><strong>SUPABASE_URL:</strong> <%= process.env.SUPABASE_URL ? 'Set' : 'Not set' %></li>
+                            <li><strong>SUPABASE_KEY:</strong> <%= process.env.SUPABASE_KEY ? 'Set' : 'Not set' %></li>
+                            <li><strong>PORT:</strong> <%= process.env.PORT || '3000' %></li>
+                        </ul>
+                        
+                        <h6 class="mt-3">Raw Test Results (JSON):</h6>
+                        <pre><%= JSON.stringify(testResults, null, 2) %></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">About This Test</h5>
+                        <p class="card-text">
+                            This is a hidden diagnostic page that tests all aspects of database connectivity. 
+                            It's not linked in the navigation and is intended for debugging purposes only.
+                        </p>
+                        <p class="card-text">
+                            <strong>Access URL:</strong> <code><%= req.protocol %>://<%= req.get('host') %>/db-test-hidden-diagnostic</code>
+                        </p>
+                        <p class="card-text">
+                            The test checks:
+                        </p>
+                        <ul>
+                            <li>Basic database connection</li>
+                            <li>Read access to all main tables</li>
+                            <li>Write operations (insert/delete)</li>
+                            <li>Complex queries with joins</li>
+                            <li>Environment configuration</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-refresh every 30 seconds if there are running tests
+        <% if (testResults.tests.some(test => test.status === 'running')) { %>
+            setTimeout(() => {
+                window.location.reload();
+            }, 30000);
+        <% } %>
+    </script>
+</body>
+</html>
