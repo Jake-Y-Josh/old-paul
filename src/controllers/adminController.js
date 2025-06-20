@@ -53,9 +53,13 @@ const login = async (req, res) => {
       return res.redirect('/admin/login');
     }
     
-    console.log(`Login attempt for username: ${username}`);
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log(`Username: ${username}`);
     console.log(`Session ID: ${req.session.id}`);
     console.log(`Session secret first 10 chars: ${process.env.SESSION_SECRET ? process.env.SESSION_SECRET.substring(0, 10) + '...' : 'not set'}`);
+    console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`Database URL configured: ${process.env.DATABASE_URL ? 'YES' : 'NO'}`);
+    console.log(`Request headers:`, req.headers);
     
     // Special handling for default admin account (skip Supabase auth)
     if (username === 'admin') {
@@ -139,7 +143,7 @@ const login = async (req, res) => {
       }
 
       if (!admin) {
-        console.log(`Login failed: username/email ${username} not found`);
+        console.error(`LOGIN FAILED: username/email ${username} not found in database`);
         req.flash('error', 'Invalid username or password');
         return res.redirect('/admin/login');
       }
@@ -148,7 +152,7 @@ const login = async (req, res) => {
       const passwordMatch = await bcrypt.compare(password, admin.password_hash);
 
       if (!passwordMatch) {
-        console.log(`Login failed: incorrect password for ${username}`);
+        console.error(`LOGIN FAILED: incorrect password for ${username}`);
         req.flash('error', 'Invalid username or password');
         return res.redirect('/admin/login');
       }
@@ -209,7 +213,9 @@ const login = async (req, res) => {
         return res.redirect('/admin/dashboard');
       });
     } catch (adminError) {
-      console.error('Error in admin login process:', adminError);
+      console.error('=== DATABASE ERROR DURING LOGIN ===');
+      console.error('Error details:', adminError);
+      console.error('Error stack:', adminError.stack);
       req.flash('error', 'Database error during login');
       return res.redirect('/admin/login');
     }

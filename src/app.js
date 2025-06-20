@@ -42,17 +42,24 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Use a default session secret if not provided (for development only)
 const sessionSecret = process.env.SESSION_SECRET || 'default_session_secret_should_be_changed';
 
-app.use(session({
+const sessionConfig = {
   secret: sessionSecret,
   resave: false,
   saveUninitialized: true, // Changed to true to ensure session IDs are assigned
   cookie: {
-    secure: process.env.NODE_ENV === 'production', 
+    secure: false, // Set to false to work with HTTP in production temporarily
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax' // Added sameSite: 'lax' for better security
   }
-}));
+};
+
+console.log('Session configuration:', {
+  secretConfigured: !!sessionSecret,
+  cookieSettings: sessionConfig.cookie
+});
+
+app.use(session(sessionConfig));
 
 // Debug session middleware to help troubleshoot sessions
 app.use((req, res, next) => {
@@ -91,6 +98,42 @@ if (!process.env.VERCEL) {
     console.log('Application will start with limited functionality');
   }
 })();
+
+// Test endpoint to verify deployment and database connection
+app.get('/test-db', async (req, res) => {
+  console.log('=== TEST DATABASE CONNECTION ===');
+  const results = {
+    environment: process.env.NODE_ENV,
+    vercel_env: process.env.VERCEL_ENV,
+    database_url: process.env.DATABASE_URL ? 'CONFIGURED' : 'NOT SET',
+    session_secret: process.env.SESSION_SECRET ? 'CONFIGURED' : 'NOT SET',
+    timestamp: new Date().toISOString()
+  };
+  
+  try {
+    // Test database connection
+    const testQuery = await db.query('SELECT NOW() as current_time, version() as db_version');
+    results.database = {
+      connected: true,
+      current_time: testQuery.rows[0].current_time,
+      version: testQuery.rows[0].db_version
+    };
+    
+    // Test admins table
+    const adminCount = await db.query('SELECT COUNT(*) as count FROM admins');
+    results.admins_count = adminCount.rows[0].count;
+    
+  } catch (error) {
+    console.error('Database test error:', error);
+    results.database = {
+      connected: false,
+      error: error.message,
+      stack: error.stack
+    };
+  }
+  
+  res.json(results);
+});
 
 // Routes
 app.use('/admin', adminRoutes);
