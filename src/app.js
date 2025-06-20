@@ -29,8 +29,6 @@ app.use((req, res, next) => {
 // Set up view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(ejsLayouts);
-app.set('layout', 'layouts/main');
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
@@ -190,15 +188,10 @@ app.use((req, res, next) => {
   });
 });
 
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  const isAuthenticated = req.session && req.session.adminId ? true : false;
-  res.status(500).render('public/error', {
-    message: 'Something went wrong',
-    error: process.env.NODE_ENV === 'development' ? err : {},
-    isAuthenticated,
-    layout: false
-  });
+  res.status(500).send('Something broke!');
 });
 
 // Periodic cleanup of expired remember tokens (every 24 hours)
